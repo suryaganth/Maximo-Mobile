@@ -1,0 +1,2099 @@
+<maximo-application controller="AppController" default-log-level="error" id="BPUIRMOBILE_IFIX012" mas-id="manage" nav-initial-open-state="false" navigator-tile-order="350" product-name="Maximo" product-name-adaptive="Maximo" theme="touch" title="Inventory Receiving" user-menu-enabled="true" user-profile-enabled="true" version="9.0.1.0">
+  <menu id="xkpj3" slot="navigation-items">
+    <menu-item icon="maximo:inventory-receive" id="y24n4" label="BPU Inventory Receiving" page="receivingSelection"/>
+  </menu>
+  <user-profile default-toggled="true" first-name="{app.state.userProfileName}" id="r_ya9" label="Available to assist" last-name="{app.state.userProfileLastName}" on-logout="logout" on-toggle="toggleAvailable" show-status="true" show-toggle-section="{app.state.isEamApp === true ? false : true}" size="52" slot="user-profile-items" src="{app.state.userProfileImg === null ? app.state.userDefaultImage : app.state.userProfileImg}" tooltip-text="Indicate if you are available to collaborate with other technicians to help them complete their work.">
+    <user-profile-center-item id="wzxyg">
+      <list id="gdjjm">
+        <list-item hidden="{app.state.isEamApp === true ? true : false}" id="m858m" label="{app.state.deviceIdLabel||''}"/>
+      </list>
+    </user-profile-center-item>
+  </user-profile>
+  <states id="r24x5">
+    <state id="mv5je" name="isMobileContainer" type="boolean" value="false"/>
+    <state id="n38pn" name="rowstamp" type="number" value="0"/>
+    <state id="m_nya" name="issuetypereceipt" type="string" value=""/>
+    <state id="mv3d8" name="issuetypereturn" type="string" value=""/>
+    <state id="ve2e5" name="issuetypetransfer" type="string" value=""/>
+    <state id="q7mqz" name="issuetypevoid" type="string" value=""/>
+    <state id="qqekn" name="issuetypeshipreceipt" type="string" value=""/>
+    <state id="nej75" name="issuetypeshipreturn" type="string" value=""/>
+    <state id="p3j52" name="issuetypeshipvoid" type="string" value=""/>
+    <state id="bk656" name="issuetypeshiptransfer" type="string" value=""/>
+    <!-- Sedin Customization - Added State for Printer Requirement -->
+    <state id="d_vfdfd7b" name="printertype" type="string" value=""/>
+    <state id="d_dsfdsv7b" name="labeltype" type="string" value=""/>
+  </states>
+  <properties id="sysproperties">
+    <property name="mxe.oslc.webappurl" id="g6aen"/>
+  </properties>
+  <!-- Sedin Customization - Added the conditionLookupDS data source -->
+  <maximo-datasource id="conditionLookupDS" lookup-data="true" object-structure="MXAPIITEMCONDITION" offline-immediate-download="true" selection-mode="single">
+    <schema id="mdekr">
+      <attribute id="rmdx2" name="conditioncode" searchable="true"/>
+      <attribute id="zn7ay" name="itemnum"/>
+      <attribute id="dbdpk" name="itemsetid"/>
+      <attribute id="awr4y" name="itemconditionid" unique-id="true"/>
+    </schema>
+  </maximo-datasource>
+  <maximo-datasource controller="POListDataController" id="dspolist" id-attribute="poid" object-structure="MXAPIPO" order-by="orderdate" pre-load="{false}" saved-query="IROPENPOMOBILE" selection-mode="none">
+    <schema id="gjw7p">
+      <attribute id="pgmxz" name="ponum" searchable="true"/>
+      <attribute id="zmg9m" name="poid" unique-id="true"/>
+      <attribute id="x38rv" name="description" searchable="true"/>
+      <attribute id="kg44_" name="buyercompany"/>
+      <attribute id="mrvpv" name="orderdate" searchable="true" sub-type="DATETIME"/>
+      <attribute id="gjkbz" name="vendor" searchable="true"/>
+      <attribute id="yy_dn" name="vendor.name--vendordesc" searchable="true"/>
+      <attribute id="nq276" name="storeloc" searchable="true"/>
+      <attribute id="y5db9" name="receipts" searchable="true">
+        <!--Sedin customization: Added lookup-map to receipts attribute-->
+        <lookup-map datasource="receiptsDS" name="value" id="b2_vnnvr">
+          <lookup-return datasource-field="description" lookup-field="displayValue" id="b2_y2va4"/>
+          <lookup-return datasource-field="value" lookup-field="value" id="b2_wdyy6"/>
+        </lookup-map>
+      </attribute>
+      <attribute computed-function="computedReceiptDescription" id="ky5qv" name="computedReceiptDescription"/>
+      <attribute id="p637k" name="shiptoattn" searchable="true"/>
+      <attribute computed-function="computedPODescription" id="k2vxy" name="computedPODescription"/>
+      <attribute computed-function="computedVendorDescription" id="gx_rg" name="computedVendorDescription"/>
+      <attribute computed-function="initialCountNum" id="p242g" local="{true}" name="receiveCountNum" type="NUMBER"/>
+      <attribute computed-function="initialCountNum" id="kreqv" local="{true}" name="inspectCountNum" type="NUMBER"/>
+      <attribute computed-function="initialCountNum" id="m2gky" local="{true}" name="assetCountNum" type="NUMBER"/>
+      <attribute computed-function="initialCountNum" id="mwq7j" local="{true}" name="returnCountNum" type="NUMBER"/>
+      <attribute computed-function="initialCountNum" id="a5mx4" local="{true}" name="receiptCountNum" type="NUMBER"/>
+      <attribute id="ag9ae" name="poline">
+        <attribute id="w74m3" name="_dbcount--polinecount"/>
+      </attribute>
+      <attribute computed-function="computedPOLineCount" id="yvq7z" name="computedPOLineCount"/>
+      <attribute id="qk4j8" name="qtyrequested"/>
+      <attribute id="xm72e" name="issuetype"/>
+      <attribute id="qqqm8" name="status"/>
+      <!-- <attribute name="computedReceiveCount"  computed-function="computedReceiveCount" id="pb4dj"/> -->
+    </schema>
+    <!--Sedin customisation: Added datasource override for PO list filtering -->
+    <maximo-datasource-override id="dspolistFilter" offline-immediate-download="false" selection-mode="multiple"/>
+    <maximo-datasource id="dspolistPoline" notify-when-parent-loads="true" relationship="poline">
+      <schema id="zab2d6">
+        <attribute id="zab2d19" name="po.ponum--ponum"/>
+        <attribute id="x4396" name="polineid" unique-id="true"/>
+        <attribute id="zab2d20" name="positeid"/>
+        <attribute id="zab2d7" name="polinenum"/>
+        <attribute id="zab2d8" name="description"/>
+        <attribute id="zab2d9" name="orderqty"/>
+        <attribute id="zab2d10" name="itemnum"/>
+        <attribute id="avea6" name="itemsetid"/>
+        <attribute id="p5b84" name="orgid"/>
+        <attribute id="em33a" name="po.siteid--siteid"/>
+        <attribute id="j5wbd" name="revisionnum"/>
+        <attribute id="zab2d11" name="orderunit"/>
+        <attribute id="zab2d12" name="receiptreqd"/>
+        <attribute id="zab2d13" name="inspectionrequired"/>
+        <attribute id="zab2d14" name="conditioncode"/>
+        <attribute id="zab2d15" name="item.rotating--rotating"/>
+        <attribute id="anwp6" name="item.lottype--lottype"/>
+        <attribute id="e5p8n" name="item.itemid--itemid"/>
+        <attribute id="zab2d16" name="linetype"/>
+        <attribute id="zab2d17" name="receivedqty"/>
+        <attribute id="zab2d18" name="receiptscomplete"/>
+        <attribute id="wky9j" name="href"/>
+        <!-- Sedin Customization - Removed the _imagelibref attribute -->
+        <!-- <attribute id="jv4dw" name="rel.item{itemid, itemnum, itemsetid, _imagelibref}"/> -->
+        <attribute id="jv4dw" name="rel.item{itemid, itemnum, itemsetid}"/>
+        <attribute id="bgbrk" name="item.receipttolerance--itemReceipttolerancePercent"/>
+        <attribute id="gk_px" name="receipttolerance"/>
+        <attribute id="vxnva" name="receipttolqty"/>
+        <!-- <attribute name="computedReceiptsRemaining" computed-function="computedReceiptsRemaining" computed="true" id="compa1"/> -->
+      </schema>
+    </maximo-datasource>
+    <maximo-datasource id="dspolistMatrectrans" id-attribute="matrectransid" page-size="1000" relationship="matrectrans">
+      <schema id="yab2d1">
+        <attribute id="yab2d13" name="ponum"/>
+        <attribute id="yvn3k" name="description"/>
+        <attribute id="byxw5" name="transdate"/>
+        <attribute id="rzrv6" name="actualdate" sub-type="DATETIME"/>
+        <attribute id="kxgkx" name="porevisionnum"/>
+        <attribute id="n_p3m" name="orgid"/>
+        <attribute id="v5pv6" name="siteid"/>
+        <attribute id="yab2d14" name="positeid"/>
+        <attribute id="yab2d2" name="polinenum"/>
+        <attribute id="yab2d3" name="issuetype"/>
+        <attribute id="yab2d15" name="issuetype_maxvalue"/>
+        <attribute id="g3mp2" name="tostoreloc"/>
+        <attribute id="yab2d4" name="acceptedqty"/>
+        <attribute id="yab2d5" name="inspectedqty"/>
+        <attribute id="dmmay" name="inspectedqtydsply"/>
+        <attribute id="ekk5w" name="inspected"/>
+        <attribute id="kyzpy" name="conversion"/>
+        <attribute id="yab2d6" name="quantity"/>
+        <attribute id="yab2d7" name="rejectqty"/>
+        <attribute id="yab2d8" name="sourcesysid"/>
+        <attribute id="yab2d9" name="externalrefid"/>
+        <attribute id="yab2d10" name="orgrcvexternalrefid"/>
+        <attribute id="yab2d11" name="receiptref"/>
+        <attribute id="yab2d12" name="matrectransid" unique-id="true"/>
+        <attribute id="m3jp3" name="itemnum"/>
+        <attribute id="mw3_6" name="itemsetid"/>
+        <attribute id="p6626" name="status"/>
+        <attribute id="j44xv" name="receiptquantity"/>
+        <attribute id="xee5p" name="status_maxvalue"/>
+        <attribute id="prwrj" name="item.rotating--rotating"/>
+        <attribute id="vpr5p" name="item.itemid--itemid"/>
+        <attribute id="brzqw" name="href"/>
+        <attribute id="gz76x" name="tolot"/>
+        <attribute id="rqx6e" name="conditioncode"/>
+      </schema>
+    </maximo-datasource>
+    <maximo-datasource cache-expiry-ms="1" id="assetinputDs" notify-when-parent-loads="true" page-size="1000" pre-load="{false}" relationship="assetinput" selection-mode="none">
+      <schema id="v_b4v">
+        <attribute id="rqkyd" name="polinenum"/>
+        <attribute id="mrk76" name="assetnum"/>
+        <attribute id="rvqdg" name="serialnum"/>
+        <attribute id="jdyjz" name="description"/>
+        <attribute id="b9kyj" name="itemnum"/>
+        <attribute id="gvxw6" name="href"/>
+        <attribute id="wvk5j" name="matrectransid"/>
+        <attribute id="ddy6v" name="localref" unique-id="true"/>
+      </schema>
+    </maximo-datasource>
+    <maximo-datasource cache-expiry-ms="1" id="assetreturnDs" notify-when-parent-loads="true" page-size="1000" pre-load="{false}" relationship="assetstoreturn" selection-mode="multiple">
+      <schema id="brwy_">
+        <attribute id="y94xr" name="localref"/>
+        <attribute id="zn325" name="actualdate" sub-type="DATETIME"/>
+        <attribute id="zqg69" name="transdate" sub-type="DATETIME"/>
+        <attribute id="d7d6m" index="true" name="tostoreloc" searchable="true" sortable="true"/>
+        <attribute id="x7nxa" index="true" name="polinenum" searchable="true" sortable="true"/>
+        <attribute id="pg8dx" name="assetnum" unique-id="true"/>
+        <attribute id="zb5je" index="true" name="asset.serialnum--serialnum" searchable="true" sortable="true"/>
+        <attribute id="xq8g6" index="true" name="itemnum" searchable="true" sortable="true"/>
+        <attribute id="jk8zb" index="true" name="ponum" searchable="true" sortable="true"/>
+        <attribute id="wnpx2" index="true" name="siteid" searchable="true" sortable="true"/>
+        <attribute id="zd9jv" name="orgid"/>
+        <attribute id="p3q3a" index="true" name="description" searchable="true" sortable="true"/>
+        <attribute id="ppk69" name="linetype"/>
+        <attribute id="emvvq" name="asn"/>
+        <attribute id="njpbm" name="inspectionrequired"/>
+        <attribute id="r88qw" name="orderqty" searchable="true"/>
+        <attribute id="wv69m" name="packingslipnum"/>
+        <attribute id="kpky3" name="conditioncode"/>
+        <attribute id="p2yb6" index="true" name="tolot" searchable="true" sortable="true"/>
+        <attribute id="ez523" name="shelflife"/>
+        <attribute id="e85wr" name="useby"/>
+        <attribute id="kmd3n" name="remark"/>
+        <attribute id="j93ma" name="_action"/>
+      </schema>
+    </maximo-datasource>
+  </maximo-datasource>
+  <json-datasource id="receiveDetailjsonds" id-attribute="_id" items="items" schema="schema" src="{[]}"/>
+  <json-datasource id="receiveDetailjsondsorg" id-attribute="_id" items="items" schema="schema" src="{[]}"/>
+  <maximo-datasource id="mobileReceipts" id-attribute="externalrefid" object-structure="MXAPIRECEIPT" saved-query="CREATEDLOCALLY">
+    <schema id="abcd1">
+      <attribute id="abcd2" name="ponum"/>
+      <attribute id="ej9q6" name="porevisionnum"/>
+      <attribute id="enxd9" name="orgid"/>
+      <attribute id="abcd4" name="siteid"/>
+      <attribute id="abcd3" name="positeid"/>
+      <attribute id="abcd5" name="externalrefid" unique-id="true"/>
+      <attribute id="abcd6" name="orgrcvexternalrefid"/>
+      <attribute id="abcd7" name="sourcesysid"/>
+      <attribute id="dzjy3" name="receiptref"/>
+      <attribute id="xwgz6" name="href"/>
+      <attribute id="abcd8" name="polinenum"/>
+      <attribute id="yzrpp" name="shipmentnum"/>
+      <attribute id="r_6_a" name="shipmentlinenum"/>
+      <attribute id="q2nx5" name="transdate"/>
+      <attribute id="nn_b9" name="actualdate" sub-type="DATETIME"/>
+      <attribute id="pa_49" name="description"/>
+      <attribute id="my69e" name="itemnum"/>
+      <attribute id="jek84" name="itemsetid"/>
+      <attribute id="qdz3e" name="conditioncode"/>
+      <!---rotating: attribute from item-->
+      <!--attribute name="rotating" id="vr2r5"/-->
+      <attribute id="r7wwx" name="linetype"/>
+      <attribute id="abcd9" name="issuetype"/>
+      <attribute id="abcd16" name="issuetype_maxvalue"/>
+      <attribute id="bnm73" name="remark"/>
+      <attribute id="d8y_5" name="tolot"/>
+      <attribute id="j7jb9" name="tostoreloc"/>
+      <attribute id="aw85d" name="shelflife"/>
+      <attribute id="vvzm2" name="useby"/>
+      <attribute id="jnpja" name="packingslipnum"/>
+      <!-- orderunit: attribute from poline -->
+      <!--attribute name="orderunit" id="gd2dp"/-->
+      <attribute id="e6zn2" name="orderqty"/>
+      <!---RECEIPTREQD: attribute from poline-->
+      <!--attribute name="receiptreqd" id="mnm87"/-->
+      <attribute id="abcd10" name="receiptquantity"/>
+      <!--receivedqty:attribute from poline-->
+      <!--attribute name="receivedqty" id="eyvwb"/-->
+      <attribute id="z5x45" name="receiptscomplete"/>
+      <attribute id="ppz34" name="inspectionrequired"/>
+      <attribute id="abcd11" name="inspected"/>
+      <attribute id="abcd12" name="inspectedqty"/>
+      <attribute id="abcd13" name="acceptedqty"/>
+      <attribute id="abcd14" name="rejectedqty"/>
+      <attribute id="abcd15" name="qtytoreceive"/>
+      <attribute id="jxnqg" name="status"/>
+      <attribute id="v37qw" name="status_maxvalue"/>
+      <attribute id="r682d" name="rejectcode"/>
+    </schema>
+  </maximo-datasource>
+  <maximo-datasource id="mobileRotReceipts" id-attribute="externalrefid" object-structure="MXAPIRCVROTITM">
+    <schema id="eabcd1">
+      <attribute id="z2_7d" name="ponum"/>
+      <attribute id="ayr4n" name="porevisionnum"/>
+      <attribute id="p9a9r" name="orgid"/>
+      <attribute id="ye3mq" name="siteid"/>
+      <attribute id="d3edq" name="positeid"/>
+      <attribute id="rg64n" name="externalrefid" unique-id="true"/>
+      <attribute id="a35w9" name="orgrcvexternalrefid"/>
+      <attribute id="nnzdr" name="sourcesysid"/>
+      <attribute id="ver5n" name="receiptref"/>
+      <attribute id="wnwka" name="href"/>
+      <attribute id="pz4rb" name="polinenum"/>
+      <attribute id="w6nav" name="transdate"/>
+      <attribute id="jwdak" name="description"/>
+      <attribute id="g3r47" name="itemnum"/>
+      <attribute id="xm5dn" name="itemsetid"/>
+      <attribute id="ak9qw" name="conditioncode"/>
+      <attribute id="vqk8v" name="linetype"/>
+      <attribute id="b5dyd" name="issuetype"/>
+      <attribute id="zbmw2" name="issuetype_maxvalue"/>
+      <attribute id="vx2g_" name="remark"/>
+      <attribute id="d58ba" name="tolot"/>
+      <attribute id="b27p7" name="tostoreloc"/>
+      <attribute id="k5g2q" name="shelflife"/>
+      <attribute id="x7gnb" name="useby"/>
+      <attribute id="dvpd_" name="packingslipnum"/>
+      <attribute id="vejg_" name="orderqty"/>
+      <attribute id="rem_g" name="receiptquantity"/>
+      <attribute id="ywz4v" name="receiptscomplete"/>
+      <attribute id="ybn92" name="inspectionrequired"/>
+      <attribute id="d93qk" name="inspected"/>
+      <attribute id="zjrd2" name="inspectedqty"/>
+      <attribute id="x9wq6" name="acceptedqty"/>
+      <attribute id="aex5n" name="rejectedqty"/>
+      <attribute id="k4zj4" name="qtytoreceive"/>
+      <attribute id="a4kbz" name="status"/>
+      <attribute id="eabcd16" name="asset{assetnum,description,serialnum,siteid}"/>
+    </schema>
+  </maximo-datasource>
+  <json-datasource auto-save="{false}" clear-selection-on-search="false" id="receivejsonDS" id-attribute="polineid" items="items" schema="schema" src="{[]}">
+    <schema id="ka82k">
+      <attribute id="m6q55" name="issuetype"/>
+      <attribute id="jpb8j" name="ponum"/>
+      <attribute id="pbndv" name="polineid" unique-id="true"/>
+      <attribute id="m63x2" name="positeid"/>
+      <attribute id="v3wn4" name="polinenum"/>
+      <attribute id="vm525" name="description"/>
+      <attribute id="qm3p_" name="orderqty"/>
+      <attribute id="y5ddn" name="itemnum"/>
+      <attribute id="kk2e8" name="itemsetid"/>
+      <attribute id="vyxp_" name="orgid"/>
+      <attribute id="pqjvj" name="siteid"/>
+      <attribute id="z6rek" name="porevisionnum"/>
+      <attribute id="b4b6j" name="orderunit"/>
+      <attribute id="qq9r5" name="receiptreqd"/>
+      <attribute id="r5wnq" name="inspectionrequired"/>
+      <attribute id="x68k7" name="conditioncode"/>
+      <attribute id="x6z8r" name="rotating"/>
+      <attribute id="pmgbk" name="linetype"/>
+      <attribute id="n5mgy" name="receivedqty"/>
+      <attribute id="r935p" name="receiptscomplete"/>
+      <attribute id="n33ne" name="computedReceiptsRemaining"/>
+      <attribute id="nv7bx" local="{true}" name="invalid"/>
+      <attribute id="r95e8" name="receiptquantity"/>
+      <attribute id="wgg5r" name="receiptquantity_old"/>
+      <attribute id="v6v68" name="remark"/>
+      <attribute id="qzp98" name="tolot"/>
+      <attribute id="b7wnq" name="tostoreloc"/>
+      <attribute id="rzgnz" name="shelflife"/>
+      <attribute id="p9884" name="useby" sub-type="DATETIME"/>
+      <attribute id="aq4a3" name="packingslipnum"/>
+      <attribute id="bnmn4" name="externalrefid"/>
+      <attribute id="wp9ra" name="sourcesysid"/>
+      <attribute id="nbr7k" name="receipttolerance"/>
+      <attribute id="v26_6" name="receipttolqty"/>
+      <attribute id="nd6p9" name="item.receipttolerance--receipttolerance"/>
+    </schema>
+  </json-datasource>
+  <json-datasource auto-save="{false}" id="matrectransjsonDS" items="items" schema="schema" src="{[]}">
+    <schema id="g23wk">
+      <attribute id="rxrdb" name="_id" unique-id="true"/>
+      <attribute id="azzv2" name="matrectransid"/>
+      <attribute id="m3ey4" name="description"/>
+      <attribute id="nm84y" name="itemnum"/>
+      <attribute id="pap26" name="itemsetid"/>
+      <attribute id="p6w3g" name="orgid"/>
+      <attribute id="r8pwz" name="siteid"/>
+      <attribute id="nzk6n" name="porevisionnum"/>
+      <attribute id="v_6g_" name="ponum"/>
+      <!--attribute name="polineid" id="xe3x2"/-->
+      <attribute id="v_vwx" name="polinenum"/>
+      <attribute id="nn_36" local="{true}" name="invalid"/>
+      <attribute id="e5zmm" name="receivedqty"/>
+      <attribute id="dn445" name="acceptedqty"/>
+      <attribute id="na_3j" name="rejectcode"/>
+      <attribute id="kkxb8" name="rejectqty"/>
+      <attribute id="p6qan" name="inspectedqty"/>
+      <attribute id="bxdre" name="inspectedqtydsply"/>
+      <attribute id="yknx6" name="conversion"/>
+      <attribute id="p9y37" name="inspected"/>
+      <attribute id="xgknm" name="remark"/>
+      <attribute id="x7zdy" name="tostoreloc"/>
+      <attribute id="m7mev" name="externalrefid"/>
+      <attribute id="nnkw5" name="sourcesysid"/>
+      <attribute id="nnkp_" name="orgrcvexternalrefid"/>
+      <attribute id="vmaxw" name="rotating"/>
+    </schema>
+  </json-datasource>
+  <json-datasource auto-save="{false}" clear-selection-on-search="false" id="returnrecjsonDs" items="items" schema="schema" src="{[]}">
+    <schema id="pnxm2">
+      <attribute id="r68_z" name="_id" unique-id="true"/>
+      <attribute id="gngbd" name="qtyrequested"/>
+      <attribute id="rvn89" name="actualdate" sub-type="DATETIME"/>
+      <attribute id="jaw53" name="transdate" sub-type="DATETIME"/>
+      <attribute id="g6np6" name="polinenum"/>
+      <attribute id="qxb2y" name="assetnum"/>
+      <attribute id="qrmw7" name="itemnum"/>
+      <attribute id="epr4y" name="itemsetid"/>
+      <attribute id="ywg4r" local="{true}" name="invalid"/>
+      <attribute id="jzq7a" name="orgid"/>
+      <attribute id="wry8a" name="siteid"/>
+      <attribute id="mw8m5" name="ponum"/>
+      <attribute id="jk4nn" name="porevisionnum"/>
+      <attribute id="d_k86" name="description"/>
+      <attribute id="zz_d_" name="linetype"/>
+      <attribute id="ajw8y" name="asn"/>
+      <attribute id="ya9z6" name="inspectionrequired"/>
+      <attribute id="qd539" name="orderqty"/>
+      <attribute id="p_w_3" name="externalrefid"/>
+      <attribute id="pk6wz" name="sourcesysid"/>
+      <attribute id="q_en7" name="orgrcvexternalrefid"/>
+      <attribute id="e5veb" name="rotating"/>
+    </schema>
+  </json-datasource>
+  <json-datasource clear-selection-on-search="false" id="voidrecjsonDs" items="items" schema="schema" src="{[]}">
+    <schema id="e4gmd">
+      <attribute id="qzk4g" name="_id" unique-id="true"/>
+      <attribute id="nw53a" name="qtyrequested"/>
+      <attribute id="np562" name="actualdate" sub-type="DATETIME"/>
+      <attribute id="eg2rk" name="transdate" sub-type="DATETIME"/>
+      <attribute id="y9z2a" name="polinenum"/>
+      <attribute id="y2jgg" name="assetnum"/>
+      <attribute id="em2a_" name="itemnum"/>
+      <attribute id="jpn2_" name="itemsetid"/>
+      <attribute id="yggry" name="ponum"/>
+      <attribute id="gwpne" name="porevisionnum"/>
+      <attribute id="g7b6p" name="siteid"/>
+      <attribute id="yvwdd" name="orgid"/>
+      <attribute id="gzp9r" name="description"/>
+      <attribute id="jrxp8" name="linetype"/>
+      <attribute id="zrq8j" name="asn"/>
+      <attribute id="b4_ed" name="inspectionrequired"/>
+      <attribute id="ewqq_" name="orderqty"/>
+      <attribute id="paqyk" name="externalrefid"/>
+      <attribute id="nrv3q" name="sourcesysid"/>
+      <attribute id="kvrv3" name="orgrcvexternalrefid"/>
+      <attribute id="nwke_" name="rotating"/>
+    </schema>
+  </json-datasource>
+  <json-datasource clear-selection-on-search="false" id="assetinputjsonDs" items="items" schema="schema" src="{[]}">
+    <schema id="y9966">
+      <attribute id="ezqkd" name="_id" unique-id="true"/>
+      <attribute id="ka3nz" name="polinenum"/>
+      <attribute id="wnywk" name="assetnum"/>
+      <attribute id="rzdvp" name="serialnum"/>
+      <attribute id="rnbg4" name="description"/>
+      <attribute id="g8w2v" name="itemnum"/>
+      <attribute id="k5j3y" name="href"/>
+      <attribute id="k8zg4" name="matrectransid"/>
+      <attribute id="wan9e" name="externalrefid"/>
+      <attribute id="xe64a" name="sourcesysid"/>
+      <attribute id="rxp2w" name="orgrcvexternalrefid"/>
+    </schema>
+  </json-datasource>
+  <!-- Sedin Customization - Updated selection mode from None to Multiple for below json-datasource receiptjsonDs -->
+  <json-datasource id="receiptjsonDs" items="items" schema="schema" selection-mode="multiple" src="{[]}">
+    <schema id="epbda">
+      <attribute id="b44_z" name="_id" unique-id="true"/>
+      <attribute id="k_myy" name="qtyrequested"/>
+      <attribute id="a4zg8" name="receiptquantity"/>
+      <attribute id="kxk84" name="inspectedqty"/>
+      <attribute id="xwjvr" name="actualdate" sub-type="DATETIME"/>
+      <attribute id="dqj57" name="transdate" sub-type="DATETIME"/>
+      <attribute id="e9aq5" name="status"/>
+      <attribute id="m_39p" name="status_description"/>
+      <attribute id="x37dz" name="issuetype"/>
+      <attribute id="jqzwg" name="issuetype_description"/>
+      <attribute id="dw5b7" name="polinenum"/>
+      <attribute id="g3yxg" name="itemnum" searchable="true"/>
+      <attribute id="abn6d" name="ponum"/>
+      <attribute id="wdz_e" name="siteid"/>
+      <!-- Sedin Customization - Added attribute tolot  -->
+      <attribute id="wdz_fdfe" name="tolot"/>
+      <attribute id="av5wk" name="orgid"/>
+      <attribute id="y6_8a" name="description" searchable="true"/>
+      <attribute id="b2rme" name="externalrefid"/>
+      <attribute id="w6exw" name="sourcesysid"/>
+      <attribute id="d_6g3" name="orgrcvexternalrefid"/>
+      <attribute id="dy778" name="matrectransid"/>
+    </schema>
+  </json-datasource>
+  <maximo-datasource controller="./shipment/ShipmentDataController" id="shipmentDS" object-structure="MXAPISHIPMENT" pre-load="{false}" saved-query="IROPENSHIPMOBILE" selection-mode="none">
+    <schema id="anp9r">
+      <attribute id="zr_mj" name="shipmentid" unique-id="true"/>
+      <attribute id="edx8w" name="shipmentnum" searchable="true" sortable="true"/>
+      <attribute id="vjaq6" name="packingslipnum" searchable="true"/>
+      <attribute id="mjrev" name="invuse">
+        <attribute id="b75e2" name="receipts" searchable="true"/>
+      </attribute>
+      <attribute id="zx86q" name="shipdate" searchable="true"/>
+      <attribute id="jajq4" name="fromsiteid" searchable="true"/>
+      <attribute id="j34m6" name="shiptoattn" searchable="true"/>
+      <attribute id="dqg7g" name="enterby" searchable="true"/>
+      <attribute id="xapb5" name="shipmentline">
+        <attribute id="n9jqm" name="_dbcount--numberoflines"/>
+      </attribute>
+      <attribute computed-function="initialCountNum" id="rpyym" local="{true}" name="receiveCountNum" type="NUMBER"/>
+      <attribute computed-function="initialCountNum" id="qzw56" local="{true}" name="inspectCountNum" type="NUMBER"/>
+      <attribute computed-function="initialCountNum" id="rjex5" local="{true}" name="assetCountNum" type="NUMBER"/>
+      <attribute computed-function="initialCountNum" id="bw7b9" local="{true}" name="returnCountNum" type="NUMBER"/>
+      <attribute computed-function="initialCountNum" id="amnmb" local="{true}" name="receiptCountNum" type="NUMBER"/>
+      <attribute computed-function="initialCountNum" id="za49q" local="{true}" name="voidCountNum" type="NUMBER"/>
+    </schema>
+    <maximo-datasource id="shipmentlineDS" id-attribute="shipmentlineid" notify-when-parent-loads="false" relationship="shipmentline">
+      <schema id="w48q3">
+        <attribute id="nxk4x" name="shipmentlineid" unique-id="true"/>
+        <attribute id="d_rmp" name="shipmentlinenum"/>
+        <attribute id="ekxgn" name="invuseline.item.rotating--rotating"/>
+        <attribute id="jb5v_" name="shipment.shipmentnum--shipmentnum"/>
+        <attribute id="ad_v9" name="shipment.fromsiteid--fromsiteid"/>
+        <attribute id="z7e79" name="itemdescription"/>
+        <attribute id="r94n8" name="shippedqty"/>
+        <attribute id="gxa5g" name="itemnum"/>
+        <attribute id="wm99v" name="itemsetid"/>
+        <attribute id="bd4qe" name="orgid"/>
+        <attribute id="aez98" name="siteid"/>
+        <attribute id="zqywp" name="revisionnum"/>
+        <attribute id="rppr_" name="orderunit"/>
+        <attribute id="mew6_" name="receiptreqd"/>
+        <attribute id="m6ddz" name="invuseline.inspectionrequired--inspectionrequired"/>
+        <attribute id="y5q4v" name="conditioncode"/>
+        <attribute id="kdey_" name="linetype"/>
+        <attribute id="vgz93" name="receivedqty"/>
+        <attribute id="g4yvb" name="receiptscomplete"/>
+        <attribute id="r8dmn" name="fromstoreloc"/>
+        <attribute id="mbgb6" name="fromlot"/>
+        <attribute id="pvmv_" name="href"/>
+        <attribute id="k__g4" name="invuseline.tobin--tobin"/>
+        <attribute id="e6dr9" name="invuseline.tolot--tolot"/>
+        <attribute id="g8rng" name="invuseline.fromlot--fromlot"/>
+        <attribute id="zdz6j" name="invuseline.fromconditioncode--fromconditioncode"/>
+        <attribute id="ddd5w" name="invuselinesplit.rotassetnum--rotassetnum"/>
+        <attribute id="b54k5" name="invuselinesplit.rotasset.serialnum--serialnum"/>
+        <!-- <attribute name="rel.item{itemid, itemnum, itemsetid, _imagelibref}" id="jv4dw"/> -->
+        <!-- <attribute name="computedReceiptsRemaining" computed-function="computedReceiptsRemaining" computed="true" id="compa1"/> -->
+      </schema>
+    </maximo-datasource>
+    <maximo-datasource id="shipmentMatrectransDS" id-attribute="matrectransid" notify-when-parent-loads="{app.device.isMaximoMobile}" page-size="1000" relationship="matrectrans4ship">
+      <schema id="zvxg2">
+        <attribute id="x6yrz" name="shipmentnum"/>
+        <attribute id="za8_p" name="description"/>
+        <attribute id="n2rw3" name="transdate"/>
+        <attribute id="j_epr" name="actualdate" sub-type="DATETIME"/>
+        <attribute id="pyvd3" name="orgid"/>
+        <attribute id="pg6_e" name="siteid"/>
+        <attribute id="maadp" name="shipmentlinenum"/>
+        <attribute id="gz7r_" name="issuetype"/>
+        <attribute id="z79bj" name="issuetype_maxvalue"/>
+        <attribute id="ewv9q" name="fromstoreloc"/>
+        <attribute id="d_e9d" name="fromlot"/>
+        <attribute id="e_6a8" name="tostoreloc"/>
+        <attribute id="q79n8" name="acceptedqty"/>
+        <attribute id="r2dke" name="inspectedqty"/>
+        <attribute id="kyb5z" name="inspectedqtydsply"/>
+        <attribute id="bn6r3" name="inspected"/>
+        <attribute id="v4858" name="conversion"/>
+        <attribute id="k52a5" name="quantity"/>
+        <attribute id="jqy39" name="rejectqty"/>
+        <attribute id="mrqq_" name="rejectcode"/>
+        <attribute id="j797g" name="sourcesysid"/>
+        <attribute id="kq2x8" name="externalrefid"/>
+        <attribute id="eqz67" name="orgrcvexternalrefid"/>
+        <attribute id="qnren" name="receiptref"/>
+        <attribute id="wx3_b" name="matrectransid" unique-id="true"/>
+        <attribute id="ggkzp" name="itemnum"/>
+        <attribute id="zwgkg" name="item.description--itemdesc" searchable="true"/>
+        <attribute id="dz6r_" name="itemsetid"/>
+        <attribute id="ed_m9" name="status"/>
+        <attribute id="w6bra" name="receiptquantity"/>
+        <attribute id="m7dwk" name="shipmentline.shippedqty--orderqty"/>
+        <attribute id="pxarn" name="status_maxvalue"/>
+        <attribute id="rawz8" name="href"/>
+        <attribute id="rgj4z" name="tolot"/>
+        <attribute id="nm5_n" name="conditioncode"/>
+        <attribute id="q_a37" name="ponum"/>
+        <attribute id="w7pd3" name="invuseline.item.rotating--rotating"/>
+        <attribute id="gzee4" name="remark"/>
+        <attribute id="nb45z" name="rotassetnum"/>
+      </schema>
+    </maximo-datasource>
+    <maximo-datasource cache-expiry-ms="1" id="shipmentassetinputDS" notify-when-parent-loads="true" pre-load="{false}" relationship="assetinput" selection-mode="none">
+      <schema id="n2p85">
+        <attribute id="j6zvg" name="shipmentnum"/>
+        <attribute id="d_433" name="assetnum" title="Asset number"/>
+        <attribute id="d5b7_" name="serialnum" title="Serial number"/>
+        <attribute id="eza8_" name="description"/>
+        <attribute id="dbywm" name="itemnum"/>
+        <attribute id="eq5xe" name="href"/>
+        <attribute id="d5a9n" name="matrectransid"/>
+        <attribute id="w464y" name="localref" unique-id="true"/>
+      </schema>
+    </maximo-datasource>
+  </maximo-datasource>
+  <maximo-datasource id="synonymdomainDS" id-attribute="domainid" lookup-data="true" object-structure="mxapisynonymdomain" saved-query="MOBILEDOMAIN">
+    <schema id="wgwqq">
+      <attribute id="p9bv9" name="value" searchable="true"/>
+      <attribute id="bgye2" name="maxvalue" searchable="true"/>
+      <attribute id="zen8b" name="description" searchable="true"/>
+      <attribute id="yj9yw" name="domainid" searchable="true"/>
+      <attribute id="kq62b" name="valueid" searchable="true" unique-id="true"/>
+      <attribute id="jj3m6" name="siteid" searchable="true"/>
+      <attribute id="arvym" name="orgid" searchable="true"/>
+      <attribute id="n4bqk" name="defaults"/>
+    </schema>
+  </maximo-datasource>
+  <!-- Sedin Customization - Added new maximo datasource for receipts status -->
+  <maximo-datasource id="receiptsDS" object-structure="MXAPISYNONYMDOMAIN" lookup-data="true" saved-query="RECEIPTS" offline-immediate-download="true" page-size="100" pre-load="true" selection-mode="single">
+    <schema id="b2_pmk_4">
+      <attribute name="domainid" id="b2_ndaev"/>
+      <attribute name="value" searchable="true" unique-id="true" id="b2_ap8_4"/>
+      <attribute name="description" searchable="true" id="b2_ewg3g"/>
+    </schema>
+    <maximo-datasource-override id="receiptsFilterDS" selection-mode="single"/>
+  </maximo-datasource>
+  <!-- Sedin Customization - Added new maximo datasource alndomainData -->
+  <maximo-datasource id="alndomainData" id-attribute="domainid" offline-immediate-download="true" object-structure="MXAPIALNDOMAIN" page-size="10" lookup-data="true" selection-mode="single">
+    <schema id="zxb7q">
+      <attribute name="domainid" searchable="true" id="q8g63"/>
+      <attribute name="value" searchable="true" id="kmdq2"/>
+      <attribute name="description" searchable="true" id="yn7z7"/>
+      <attribute name="valueid" unique-id="true" id="pd77z"/>
+    </schema>
+  </maximo-datasource>
+  <json-datasource auto-save="{false}" clear-selection-on-search="false" id="shipmentreceivejsonDS" id-attribute="shipmentlineid" items="items" schema="schema" src="{[]}">
+    <schema id="armxe">
+      <attribute id="akema" name="issuetype"/>
+      <attribute id="gbanv" name="shipmentnum"/>
+      <attribute id="e_yxd" name="shipmentlineid" unique-id="true"/>
+      <attribute id="gpe3g" name="shipmentsiteid"/>
+      <attribute id="nm6x8" name="shipmentlinenum"/>
+      <attribute id="q7k6m" name="itemdescription"/>
+      <attribute id="vwx3b" name="shippedqty"/>
+      <attribute id="b372b" name="itemnum"/>
+      <attribute id="kv4x7" name="itemsetid"/>
+      <attribute id="akb99" name="orgid"/>
+      <attribute id="xdz64" name="siteid"/>
+      <attribute id="km_v2" name="shipmentrevisionnum"/>
+      <attribute id="n9p8z" name="orderunit"/>
+      <attribute id="zed4d" name="receiptreqd"/>
+      <attribute id="p3gqm" name="inspectionrequired"/>
+      <attribute id="vjj86" name="conditioncode"/>
+      <attribute id="rk9yb" name="fromconditioncode"/>
+      <attribute id="qz_93" name="rotating"/>
+      <attribute id="ayp63" name="linetype"/>
+      <attribute id="vyebz" name="receiptscomplete"/>
+      <attribute id="za34w" name="computedReceiptsRemaining"/>
+      <attribute id="q225_" local="{true}" name="invalid"/>
+      <attribute id="dwm8v" name="receiptquantity"/>
+      <attribute id="nvz3m" name="receiptquantity_old"/>
+      <attribute id="rw6x4" name="remark"/>
+      <attribute id="bw6v7" name="tolot"/>
+      <attribute id="jkxdq" name="tostoreloc"/>
+      <attribute id="jmnpn" name="shelflife"/>
+      <attribute id="rq5qz" name="useby" sub-type="DATETIME"/>
+      <attribute id="v6ex7" name="packingslipnum"/>
+      <attribute id="xm96p" name="externalrefid"/>
+      <attribute id="byj5e" name="sourcesysid"/>
+      <attribute id="w5_9w" name="ponum"/>
+      <attribute id="xem_g" name="fromstoreloc"/>
+    </schema>
+  </json-datasource>
+  <json-datasource auto-save="{false}" clear-selection-on-search="false" id="shipmentinspectjsonDS" items="items" schema="schema" src="{[]}">
+    <schema id="y_v_b">
+      <attribute id="zgw9m" name="_id" unique-id="true"/>
+      <attribute id="d_m7x" name="matrectransid"/>
+      <attribute id="ewggr" name="description" searchable="true"/>
+      <attribute id="m_7m2" name="itemdescription" searchable="true"/>
+      <attribute id="mzp8m" name="itemnum" searchable="true"/>
+      <attribute id="qvj85" name="itemsetid"/>
+      <attribute id="xw475" name="orgid"/>
+      <attribute id="g6wg3" name="siteid"/>
+      <attribute id="v4pjg" name="porevisionnum"/>
+      <attribute id="xqydy" name="shipmentnum"/>
+      <attribute id="wrk85" name="shipmentlinenum"/>
+      <attribute id="az7j2" local="{true}" name="invalid"/>
+      <attribute id="m6rjr" name="receiptquantity"/>
+      <attribute id="d_3ww" name="receivedqty"/>
+      <attribute id="xq3aa" name="acceptedqty" searchable="true" title="Accept quantity"/>
+      <attribute id="xqqpr" name="rejectcode"/>
+      <attribute id="g6m_w" name="rejectqty" searchable="true" title="Reject quantity"/>
+      <attribute id="j36z4" name="inspectedqty"/>
+      <attribute id="k_wzj" name="inspectedqtydsply"/>
+      <attribute id="jvjnb" name="conversion"/>
+      <attribute id="kw69y" name="inspected"/>
+      <attribute id="gaa9k" name="remark"/>
+      <attribute id="qejr5" name="tostoreloc"/>
+      <attribute id="aa8rw" name="externalrefid"/>
+      <attribute id="vdz34" name="sourcesysid"/>
+      <attribute id="y67we" name="orgrcvexternalrefid"/>
+      <attribute id="exbp5" name="rotating"/>
+    </schema>
+  </json-datasource>
+  <json-datasource auto-save="{false}" clear-selection-on-search="false" id="shipmentinspectassetjsonDS" items="items" schema="schema" src="{[]}">
+    <schema id="p_aq5">
+      <attribute id="g92b7" name="_id" unique-id="true"/>
+      <attribute id="wyvba" name="matrectransid"/>
+      <attribute id="dxq4x" name="description"/>
+      <attribute id="z68am" name="itemnum"/>
+      <attribute id="e4r4q" name="itemsetid"/>
+      <attribute id="kjv3q" name="orgid"/>
+      <attribute id="b4x43" name="siteid"/>
+      <attribute id="akrak" name="porevisionnum"/>
+      <attribute id="dwp76" name="shipmentnum"/>
+      <attribute id="bey_2" name="shipmentlinenum"/>
+      <attribute id="v9kvn" local="{true}" name="invalid"/>
+      <attribute id="dznb3" name="receiptquantity"/>
+      <attribute id="jx8e_" name="receivedqty"/>
+      <attribute id="n69mm" name="acceptedqty"/>
+      <attribute id="pakb7" name="rejectcode"/>
+      <attribute id="d9p44" name="rejectqty"/>
+      <attribute id="z5d6a" name="inspectedqty"/>
+      <attribute id="kxrg2" name="inspectedqtydsply"/>
+      <attribute id="grdrp" name="conversion"/>
+      <attribute id="nvpwz" name="inspected"/>
+      <attribute id="w9krd" name="remark"/>
+      <attribute id="dr__2" name="tostoreloc"/>
+      <attribute id="wjkeq" name="externalrefid"/>
+      <attribute id="n3web" name="sourcesysid"/>
+      <attribute id="ex36d" name="orgrcvexternalrefid"/>
+      <attribute id="yykzp" name="rotating"/>
+      <attribute id="az7dz" name="rotassetnum"/>
+      <attribute computed-function="computedRotItemDisplay" id="gkdbj" name="computedRotItemDisplay"/>
+    </schema>
+  </json-datasource>
+  <json-datasource auto-save="{false}" clear-selection-on-search="false" id="shipmentreturnrecjsonDS" items="items" schema="schema" src="{[]}">
+    <schema id="abxd2">
+      <attribute id="rq7jr" name="_id" unique-id="true"/>
+      <attribute id="r6wgd" name="qtyrequested"/>
+      <attribute id="r9xmm" name="actualdate" sub-type="DATETIME"/>
+      <attribute id="mb22w" name="transdate" sub-type="DATETIME"/>
+      <attribute id="yja75" name="shipmentnum"/>
+      <attribute id="xyj7v" name="shipmentlinenum"/>
+      <attribute id="w89xa" name="polinenum"/>
+      <attribute id="bx7v2" name="assetnum"/>
+      <attribute id="wq8e3" name="itemnum"/>
+      <attribute id="kr9ax" name="itemsetid"/>
+      <attribute id="y92d4" local="{true}" name="invalid"/>
+      <attribute id="yyk33" name="orgid"/>
+      <attribute id="q7ez7" name="siteid"/>
+      <attribute id="vqa4x" name="ponum"/>
+      <attribute id="a3e8z" name="porevisionnum"/>
+      <attribute id="gwx5g" name="itemdescription"/>
+      <attribute id="pkn2y" name="linetype"/>
+      <attribute id="x78rm" name="asn"/>
+      <attribute id="agk55" name="inspectionrequired"/>
+      <attribute id="xqzyv" name="orderqty"/>
+      <attribute id="wma9_" name="externalrefid"/>
+      <attribute id="eaxjq" name="sourcesysid"/>
+      <attribute id="qajb9" name="orgrcvexternalrefid"/>
+      <attribute id="ye6zb" name="rotating"/>
+      <attribute id="x5ek8" name="rotassetnum"/>
+    </schema>
+  </json-datasource>
+  <json-datasource clear-selection-on-search="false" id="shipmentvoidrecjsonDS" items="items" schema="schema" src="{[]}">
+    <schema id="k4beb">
+      <attribute id="qaxgn" name="_id" unique-id="true"/>
+      <attribute id="kpd7y" name="qtyrequested"/>
+      <attribute id="by4z6" name="actualdate" sub-type="DATETIME"/>
+      <attribute id="qn33m" name="transdate" sub-type="DATETIME"/>
+      <attribute id="b55vd" name="polinenum"/>
+      <attribute id="wqv43" name="assetnum"/>
+      <attribute id="kwy2y" name="itemnum"/>
+      <attribute id="wpn6j" name="itemsetid"/>
+      <attribute id="jyyv2" name="ponum"/>
+      <attribute id="zb2x6" name="porevisionnum"/>
+      <attribute id="ry66e" name="siteid"/>
+      <attribute id="x6kww" name="orgid"/>
+      <attribute id="pd5qk" name="description"/>
+      <attribute id="q6jar" name="linetype"/>
+      <attribute id="wwrgq" name="asn"/>
+      <attribute id="e9n39" name="inspectionrequired"/>
+      <attribute id="j_9xd" name="orderqty"/>
+      <attribute id="k76pw" name="externalrefid"/>
+      <attribute id="mwdqx" name="sourcesysid"/>
+      <attribute id="d2wpg" name="orgrcvexternalrefid"/>
+      <attribute id="e9k7_" name="rotating"/>
+      <attribute id="vavn9" name="remark"/>
+    </schema>
+  </json-datasource>
+  <json-datasource controller="./shipment/ShipmentReceiptDataController" id="shipmentreceiptjsonDs" items="items" order-by="actualdate desc" schema="schema" selection-mode="none" src="{[]}">
+    <schema id="kgyy4">
+      <attribute id="j5aqb" name="_id" unique-id="true"/>
+      <attribute id="gg5v8" name="quantity"/>
+      <attribute id="vnamp" name="inspectedqty"/>
+      <attribute id="yzegk" name="rejectqty"/>
+      <attribute id="j3_rj" name="rejectcode"/>
+      <attribute id="jq9j6" name="qtyrequested"/>
+      <attribute id="q7b46" name="receiptquantity"/>
+      <!-- <attribute name="receiptquantity_cal" computed-function="_computeReceiptQuantity" id="ran5j"/> -->
+      <attribute id="q8mr9" name="acceptedqty"/>
+      <attribute id="z84nj" name="shippedqty"/>
+      <attribute id="byn92" name="orderqty"/>
+      <attribute id="ndbpd" name="conversion"/>
+      <attribute id="x7q5_" name="fromstoreloc"/>
+      <attribute id="zpxy7" name="fromlot"/>
+      <attribute id="v2wnw" name="actualdate" sub-type="DATETIME"/>
+      <attribute computed-function="_computeActualDate" id="q2gaa" name="computedActualDate" type="STRING"/>
+      <attribute id="qkz98" name="transdate" sub-type="DATETIME"/>
+      <attribute id="vm52k" name="status"/>
+      <attribute id="br4w4" name="status4Badge"/>
+      <attribute computed-function="_computeBadgeTags" id="jw_q8" name="statusJSON4Badge"/>
+      <attribute computed-function="_computeStyle" id="wdawr" name="computedStyle" type="STRING"/>
+      <attribute id="edkka" name="status_description"/>
+      <attribute id="j2q97" name="issuetype"/>
+      <attribute id="pbe9g" name="issuetype_description"/>
+      <attribute id="dgvd5" name="shipmentlinenum"/>
+      <attribute id="e6pgk" name="itemnum" searchable="true"/>
+      <attribute id="p6xbv" name="itemdesc" searchable="true"/>
+      <attribute id="ek2jb" name="shipmentnum"/>
+      <attribute id="v9xbd" name="siteid"/>
+      <attribute id="ewe_x" name="orgid"/>
+      <attribute id="mebgw" name="itemdescription" searchable="true"/>
+      <attribute id="qxp43" name="externalrefid"/>
+      <attribute id="g3ma8" name="sourcesysid"/>
+      <attribute id="egrwq" name="orgrcvexternalrefid"/>
+      <attribute id="a_eeb" name="matrectransid"/>
+      <attribute id="v2dwp" name="accepttotal"/>
+    </schema>
+  </json-datasource>
+  <!-- Sedin Customization - added new dialog for printer Requirement  -->
+  <dialogs id="customsysdialog">
+    <lookup on-item-click="choosePrinter" id="printerlookup" show-search="false" lookup-heading="Type" datasource="alndomainData" border="true" lookup-attributes="{['value', 'description']}" height="400" width="60"/>
+    <lookup id="labellookup" show-search="false" lookup-heading="Type" datasource="alndomainData" on-item-click="chooseLabel" border="true" lookup-attributes="{['value', 'description']}" height="400" width="60"/>
+  </dialogs>
+  <pages id="pages">
+    <page controller="ReceivingSelectionPageController" id="receivingSelection">
+      <json-datasource id="receivingActionDS" id-attribute="_id" items="items" schema="schema" src="{[]}"/>
+      <header-template id="g4vxg" show-current-page-in-bread-crumb="false" title="Receiving"/>
+      <box direction="column" id="bbky4">
+        <data-list datasource="receivingActionDS" id="qj4_e" no-select-behavior="true" on-item-click="selectReceivingAction" on-item-click-arg="{event}" search-placeholder-text="Search submenu" show-search="false">
+          <list-item id="qpmye">
+            <border-layout fill-parent="true" id="vja75" padding="true">
+              <start horizontal-align="start" horizontal-overflow="hidden" id="kwgqb" vertical-align="center" width="85">
+                <field field-class-name="16-bold" hide-label="true" id="mpdk6" value="{item.label}"/>
+              </start>
+              <end horizontal-align="center" horizontal-overflow="hidden" id="j6mmz" vertical-align="center" width="15">
+                <button icon="carbon:chevron--right" id="exaez" on-click="selectReceivingAction" on-click-arg="{item}"/>
+              </end>
+            </border-layout>
+          </list-item>
+        </data-list>
+      </box>
+    </page>
+    <page controller="./shipment/ShipmentPageController" id="shipment">
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="r4rv2" title="Shipment receiving"/>
+      <card-group can-sort="true" datasource="shipmentDS" empty-set-string="{page.state.emptypolist}" enable-barcode-scanner="true" id="nenn7" show-refresh="true">
+        <ic-card-template chevron-kind="ghost" id="mpvka" on-chevron-click="showShipmentActions" on-chevron-click-arg="{item}" show-chevron="true" slot="item">
+          <box id="ka8m2" slot="slot1">
+            <label id="r3r3m" label="{item.shipmentnum}"/>
+            <label id="mp3x2" label="{item.packingslipnum}" theme="14-regular"/>
+          </box>
+          <action-tag icon-hidden="true" id="ebb9e" label="{item.invuse.receipts}" slot="slot2" type="gray"/>
+          <box direction="row" id="ezv5v" padding-bottom="1" slot="slot3" vertical-align="center">
+            <label id="x_ree" label="Shipment date" spacing="none"/>
+            <field id="rg_6v">
+              <sub-field id="yzkz4" type="date_full_month" value="{item.shipdate}"/>
+            </field>
+          </box>
+          <box id="q4zax" slot="slot6">
+            <box id="en3mn" padding-bottom="1" vertical-align="center">
+              <icon icon="carbon:location" id="xnqpa"/>
+              <box direction="column" id="vykee">
+                <label hidden="{!item.fromsiteid}" id="a4aar" label="From site {item.fromsiteid}" padding="none"/>
+                <label id="n2j3n" label="{item.numberoflines} shipment lines" padding="none"/>
+              </box>
+            </box>
+          </box>
+          <box id="j4m5j" slot="slot7">
+            <box id="ka856" padding-bottom="1" vertical-align="center">
+              <icon icon="carbon:user" id="g78xp"/>
+              <box direction="column" id="gngn6">
+                <label hidden="{!item.shiptoattn}" id="v3ajj" label="Attention to {item.shiptoattn}" padding="none"/>
+                <label id="m27ze" label="Shipped by {item.enterby}" padding="none"/>
+              </box>
+            </box>
+          </box>
+          <button-group id="ey33e" padding="false" slot="slot9">
+            <button disabled="{!item.receiveCountNum}" icon="carbon:connection--receive" id="ge2z2" on-click="gotoDetailActionPage" on-click-arg="{{'item': item, 'type': 'receiveCountNum'}}" tag-type="dark-gray" tag-value="{item.receiveCountNum}"/>
+            <button disabled="{!item.inspectCountNum}" icon="maximo:inspections" id="ae7xd" on-click="gotoDetailActionPage" on-click-arg="{{'item': item, 'type': 'inspectCountNum'}}" tag-type="dark-gray" tag-value="{item.inspectCountNum}"/>
+            <button disabled="{!item.assetCountNum}" icon="carbon:asset" id="j66d4" on-click="gotoDetailActionPage" on-click-arg="{{'item': item, 'type': 'assetCountNum'}}" tag-type="dark-gray" tag-value="{item.assetCountNum}"/>
+            <button disabled="{!item.returnCountNum}" icon="carbon:movement" id="p2ax2" on-click="gotoDetailActionPage" on-click-arg="{{'item': item, 'type': 'returnCountNum'}}" tag-type="dark-gray" tag-value="{item.returnCountNum}"/>
+            <button disabled="{!item.receiptCountNum}" icon="carbon:receipt" id="vrw9g" on-click="gotoDetailActionPage" on-click-arg="{{'item': item, 'type': 'receiptCountNum'}}"/>
+            <button disabled="{!item.voidCountNum}" icon="carbon:error-outline" id="a5bpn" on-click="gotoDetailActionPage" on-click-arg="{{'item': item, 'type': 'voidCountNum'}}"/>
+          </button-group>
+        </ic-card-template>
+      </card-group>
+    </page>
+    <!-- Sedin Customization - Updated the page controller from POListPageController to BPUPOListPageController -->
+    <page controller="BPUPOListPageController" icon="carbon:list" id="polist" padding="true" title="PO List">
+      <header-template content-switcher-selected-index="{page.state.selectedSwitch}" hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="zewd_" title-column-width="{page.state.breadcrumbWidth ? page.state.breadcrumbWidth : app.state.screen.size === 'md' ? 60 : app.state.screen.size === 'lg' ? 40 : app.state.screen.size === 'xlg' ? 30 : 80}">
+        <dropdown background-color="white" hide-unselected-placeholder="true" id="rzvz4" selected-item="dspolist" slot="dropdown">
+          <dropdown-item id="njkmd" text="Open POs" value="dspolist"/>
+        </dropdown>
+      </header-template>
+      <card-group datasource="dspolist" disconnected="{!app.state.networkConnected}" empty-set-string="{page.state.emptypolist}" enable-barcode-scanner="true" id="jgyq6" readers="{[`ean_reader`]}" refresh-disconnected-message="This feature is not available while offline" show-refresh="true" timeout="{45}">
+        <filter-button datasource="dspolist" slot="actions" id="qd3bp"/>
+        <ic-card-template chevron-kind="ghost" id="iccardtemplate" on-chevron-click="showReceivingActions" on-chevron-click-arg="{item}" show-chevron="true" slot="item">
+          <wrapped-text id="dxvxa" label="{item.computedPODescription}" size="large" slot="slot1"/>
+          <tag-group align="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'start' : 'end'}" id="nb4ve" slot="slot2" tags="{item.computedReceiptDescription}"/>
+          <field hide-label="true" id="aw99_" slot="slot3" value="{[item.orderdate, item.computedVendorDescription, item.shiptoattn,  item.computedPOLineCount]}"/>
+          <button-group id="jy2z_" padding="false" slot="slot5">
+            <button disabled="{!item.receiveCountNum}" icon="carbon:inventory-management" id="rx989" on-click="gotoDetailActionPage" on-click-arg="{{'item': item, 'type': 'receiveCountNum'}}" tag-type="dark-gray" tag-value="{item.receiveCountNum}"/>
+            <button disabled="{!item.inspectCountNum}" icon="maximo:inspections" id="kdjpe" on-click="gotoDetailActionPage" on-click-arg="{{'item': item, 'type': 'inspectCountNum'}}" tag-type="dark-gray" tag-value="{item.inspectCountNum}"/>
+            <button disabled="{!item.assetCountNum}" hidden="{app.device.isMaximoMobile}" icon="maximo:asset--add" id="mw2rn" on-click="gotoDetailActionPage" on-click-arg="{{'item': item, 'type': 'assetCountNum'}}" tag-type="dark-gray" tag-value="{item.assetCountNum}"/>
+            <button disabled="{!item.returnCountNum}" icon="carbon:movement" id="qv52b" on-click="gotoDetailActionPage" on-click-arg="{{'item': item, 'type': 'returnCountNum'}}"/>
+            <button disabled="{!item.receiptCountNum}" icon="carbon:receipt" id="qwmdk" on-click="gotoDetailActionPage" on-click-arg="{{'item': item, 'type': 'receiptCountNum'}}"/>
+            <!-- Sedin Customization - Added the button to navigato to Attchements page in Maximo on browser-->
+            <button icon="carbon:link" id="qwmdkaa" on-click="navigateToMaximo" on-click-arg="{{'item': item}}"/>
+          </button-group>
+        </ic-card-template>
+      </card-group>
+    </page>
+    <page controller="ActionsPageController" id="recactions">
+      <states id="jjdqv">
+        <state id="w886y" name="ponum" type="string"/>
+        <state id="dbkby" name="href" type="string"/>
+        <state id="vypmn" name="receivenum" type="string"/>
+        <state id="x3pr7" name="reccount" type="string"/>
+        <state id="rwv6w" name="matcount" type="string"/>
+        <state id="gpa85" name="assetcount" type="string"/>
+      </states>
+      <json-datasource id="actionListDS" id-attribute="_id" items="items" schema="schema" src="{[]}"/>
+      <json-datasource id="actionListDS2" id-attribute="_id" items="items" schema="schema" src="{[]}"/>
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="z639b" title="{page.state.ponum}">
+        <!-- SedinCustomization - Added the Refresh button to force the transactions to sync into maximo -->
+        <button icon="carbon:renew" kind="primary" label="Refresh" on-click="syncTransactions" id="x6dky" slot="buttons"/>
+      </header-template>
+      <box direction="column" id="k72vw">
+        <data-list datasource="actionListDS" id="d5xry" no-select-behavior="true" on-item-click="subMenuListGoto" on-item-click-arg="{event}" search-placeholder-text="Search submenu" show-search="false">
+          <list-item id="m4nr9">
+            <adaptive-row id="w4797">
+              <adaptive-column id="b6rp7" large-width="10" medium-width="10" small-width="15">
+                <box direction="row" fill-parent="true" horizontal-align="center" id="gqyn6" vertical-align="center">
+                  <icon icon="{item.icon}" id="aqw33"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="e95vg" large-width="20" medium-width="20" small-width="55">
+                <box direction="row" fill-parent="true" horizontal-align="center" id="k97ew" vertical-align="center">
+                  <field field-class-name="16-bold" hide-label="true" id="zv_kd" value="{item.label}"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="annky" large-width="55" medium-width="55" small-width="15">
+                <box direction="row" fill-parent="true" horizontal-align="end" id="pnem3" vertical-align="center">
+                  <tag-group align="end" hidden="{!item.tagstring}" id="m4bya" tags="{[{label: `${item.tagstring}`}]}" type="dark-gray"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="qqxdk" large-width="15" medium-width="15" small-width="15">
+                <box direction="row" fill-parent="true" horizontal-align="end" id="anvdv" vertical-align="center">
+                  <button disabled="{!item.count}" icon="carbon:chevron--right" id="qk987" on-click="gotoDetailActionPage" on-click-arg="{item}"/>
+                </box>
+              </adaptive-column>
+            </adaptive-row>
+          </list-item>
+        </data-list>
+        <data-list datasource="actionListDS2" id="waqwq" margin="true" no-select-behavior="true" on-item-click="subMenuListGoto" on-item-click-arg="{event}" show-search="false">
+          <list-item id="rzg_3">
+            <adaptive-row id="wj3wb">
+              <adaptive-column id="y5r_a" large-width="10" medium-width="10" small-width="15">
+                <box direction="row" fill-parent="true" horizontal-align="center" id="jzjkx" vertical-align="center">
+                  <icon icon="{item.icon}" id="ppy43"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="k4g6g" large-width="75" medium-width="75" small-width="70">
+                <box direction="row" fill-parent="true" horizontal-align="center" id="kxy3q" vertical-align="center">
+                  <field field-class-name="16-bold" hide-label="true" id="vbjvr" value="{item.label}"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="y7kqq" large-width="15" medium-width="15" small-width="15">
+                <box direction="row" fill-parent="true" horizontal-align="end" id="j3_94" vertical-align="end">
+                  <button disabled="{!item.count}" icon="carbon:chevron--right" id="wmzg2" on-click="gotoDetailActionPage" on-click-arg="{item}"/>
+                </box>
+              </adaptive-column>
+            </adaptive-row>
+          </list-item>
+        </data-list>
+      </box>
+    </page>
+    <page controller="ReceivePageController" id="receivepage" padding="false">
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="r9mx9" title="Receive">
+        <!-- Sedin Customization - Added the button to navigato to Attchements page in Maximo on browser-->
+        <button on-click-arg="{{'item': receivejsonDS.item, 'datasource': receivejsonDS}}" kind="ghost" on-click="navigateToMaximo1" id="bbbpv" label="Attachments" slot="buttons"/>
+        <button icon="carbon:checkmark" id="meybr" kind="primary" label="Save" on-click="saveRecevie" slot="buttons"/>
+      </header-template>
+      <panel id="max84">
+        <data-list datasource="receivejsonDS" empty-set-string="No material to receive" id="mrv2n" multi-action="false" selected-icon="carbon:checkbox--checked" show-count="{true}" unselected-icon="carbon:checkbox">
+          <list-item id="g6w4m">
+            <adaptive-row id="bn464">
+              <adaptive-column id="p8yx2" large-width="45" medium-width="100" small-width="100">
+                <box direction="column" id="b6j29">
+                  <field field-class-name="16-bold" hide-label="true" id="vmvj7" padding="top" value="{item.itemnum}"/>
+                  <field field-class-name="16-regular" hide-label="true" id="zry2v" padding="bottom" value="{item.description}" wrap="true"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="dn2j5" large-width="20" medium-width="30" small-width="100">
+                <box direction="row" horizontal-align="start" id="zvkyv" vertical-align="center">
+                  <label id="w_w3b" label="Ordered" padding="none"/>
+                  <field hide-label="true" id="mv2v8" value="{item.orderqty}"/>
+                </box>
+              </adaptive-column>
+              <!-- Sedin Customization - Added lottype field  -->
+              <adaptive-column id="LottypeExposure" large-width="20" medium-width="30" small-width="100">
+                <box direction="row" horizontal-align="start" id="Lottype1" vertical-align="center">
+                  <label id="kgdw612345" label="{item.lottype}" padding="none"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="jpbeq" large-horizontal-align="end" large-width="35" medium-horizontal-align="end" medium-width="70" small-horizontal-align="end" small-width="100">
+                <box direction="row" horizontal-align="start" id="a7dx6" vertical-align="center">
+                  <label id="nr4dg" label="Due" padding="none"/>
+                  <smart-input hide-label="true" id="x39yn" input-kind="ALN" label="" placeholder="" size="small" value="{item.receiptquantity}"/>
+                  <button icon="carbon:edit" id="brk6v" on-click="gotoRecevieDetailPage" on-click-arg="{{polinenum:item.polinenum, itemnum:item.itemnum, href:item.href}}"/>
+                </box>
+              </adaptive-column>
+            </adaptive-row>
+          </list-item>
+        </data-list>
+      </panel>
+    </page>
+    <page controller="ReceiveDetailPageController" id="receiveDetail" padding="false">
+      <states id="e4zyr">
+        <state id="kz5e_" name="itemnum" type="string"/>
+        <state id="rpbm3" name="description" type="string"/>
+        <state id="rk33k" name="hasItemFromPOLines" type="boolean" value="false"/>
+        <state id="a779a" name="hasItemImagelibrefFromPOLines" type="boolean" value="false"/>
+      </states>
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="ma623" title="Edit">
+        <button icon="carbon:checkmark" id="nn_85" kind="primary" on-click="saveRecevieDetail" slot="buttons"/>
+      </header-template>
+      <label id="z9yy3" label="{page.state.itemnum} {page.state.description}" wrap="true"/>
+      <panel id="v6ame">
+        <box background-color="ui-01" direction="row" fill-parent="true" id="nx2e5">
+          <border-layout fill-parent="true" id="yzabk">
+            <top horizontal-align="start" id="jag68" vertical-align="center">
+              <box fill-parent="true" hidden="{!page.state.hasItemImagelibrefFromPOLines}" id="wvag8">
+                <label id="k59g2" label="Photo"/>
+              </box>
+            </top>
+            <middle horizontal-align="center" id="mdwyk" vertical-align="start">
+              <!-- Sedin Customization - Commented the Image datasorce-->
+              <!-- <image datasource="{page.state.hasItemFromPOLines?app.findDatasource('childitemds4poline'):''}" id="rvn82" readonly="true" src="{item._imagelibref}" title="Add photo"/> -->
+            </middle>
+          </border-layout>
+        </box>
+        <data-list border="false" datasource="receiveDetailjsonds" id="dzn2z" no-select-behavior="true" show-search="false">
+          <list-item id="g639p">
+            <border-layout fill-parent="true" id="k4ba3">
+              <start direction="row" id="aqna5" shrink="0" vertical-align="center">
+                <adaptive-row id="gaaxy">
+                  <adaptive-column id="jd8g5" large-width="40" medium-width="40" small-width="40" xlarge-width="33">
+                    <box horizontal-align="start" id="qxnd6" vertical-align="center">
+                      <label hidden="{item.field==='remark'}" id="km5ng" label="{item.label}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="kdb78" large-width="60" medium-width="60" small-width="60" xlarge-width="67">
+                    <smart-input hidden="{item.field==='useby'||item.field ==='conditioncode'||item.field==='remark'}" hide-label="true" id="yyxrz" label="" placeholder="" value="{item.value}"/>
+                    <smart-input hidden="{item.field!=='useby'}" hide-label="true" id="azq9y" input-kind="DATE" label="" placeholder="" value="{item.value}"/>
+                    <smart-input enable-lookup-buttongroup="true" hidden="{item.field!=='conditioncode'}" hide-label="true" id="vz9rn" label="" lookup="conditionLookup" on-change="validateInput" on-change-arg="{item}" placeholder="" select-lookup-attribute="conditioncode" value="{item.value}"/>
+                  </adaptive-column>
+                </adaptive-row>
+              </start>
+              <bottom id="ay_zz">
+                <box fill-parent="true" hidden="{item.field!=='remark'}" id="y3b9d">
+                  <smart-input hidden="{item.field!=='remark'}" hide-label="false" id="g4vk_" input-kind="LONGALN" label="Comments" placeholder="" rows="5" theme="dark" value="{item.value}"/>
+                </box>
+              </bottom>
+            </border-layout>
+          </list-item>
+        </data-list>
+      </panel>
+      <dialogs id="v2px2">
+        <lookup border="true" datasource="conditionLookupDS" height="400" id="conditionLookup" lookup-attributes="{['conditioncode']}" lookup-heading="Value" on-item-click="selectConditionCode" show-search="false" width="60"/>
+      </dialogs>
+    </page>
+    <page controller="InspectPageController" id="inspectpage" padding="false">
+      <states id="aqde6">
+        <state id="nm4_b" name="href" type="string"/>
+      </states>
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="awp9_" title="Inspect">
+        <button icon="carbon:checkmark" id="j3ean" kind="primary" label="{'Save'}" on-click="saveInspect" slot="buttons"/>
+      </header-template>
+      <panel id="x6_7k">
+        <data-list datasource="matrectransjsonDS" empty-set-string="No material to inspect" id="v5554" multi-action="false" selected-icon="carbon:checkbox--checked" show-count="{true}" unselected-icon="carbon:checkbox">
+          <list-item id="dq5b3">
+            <adaptive-row id="dbgwd">
+              <adaptive-column id="a6ea6" large-width="30" medium-width="100" small-width="100">
+                <box direction="column" id="kp878">
+                  <field field-class-name="16-bold" hide-label="true" id="x6n2b" padding="top" value="{item.itemnum}"/>
+                  <field field-class-name="16-regular" hide-label="true" id="bxyjn" padding="bottom" value="{item.description}" wrap="true"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="qkydy" large-width="15" medium-width="20" small-width="20">
+                <box direction="row" horizontal-align="center" id="nz353" vertical-align="center">
+                  <label id="gpmwr" label="Accept" padding="none"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="vapxr" large-horizontal-align="end" large-width="15" medium-horizontal-align="end" medium-width="70" small-horizontal-align="end" small-width="70">
+                <box direction="row" horizontal-align="center" id="pzq76" vertical-align="center">
+                  <smart-input hide-label="true" id="x5g7a" input-kind="ALN" label="" on-blur="checkInputValues" on-blur-arg="{{item:item, field:'acceptedqty'}}" placeholder="" size="small" value="{item.acceptedqty}"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="ryd9m" large-width="15" medium-width="20" small-width="20">
+                <box direction="row" horizontal-align="center" id="yp2q8" vertical-align="center">
+                  <label id="nqdqv" label="Reject" padding="none"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="y3ya8" large-horizontal-align="end" large-width="15" medium-horizontal-align="end" medium-width="20" small-horizontal-align="end" small-width="70">
+                <box direction="row" horizontal-align="center" id="b396w" vertical-align="center">
+                  <smart-input hide-label="true" id="ra8xw" input-kind="ALN" label="" on-blur="checkInputValues" on-blur-arg="{{item:item, field:'rejectqty'}}" placeholder="" size="small" value="{item.rejectqty}"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="zr97b" large-horizontal-align="end" large-width="10" medium-horizontal-align="end" medium-width="10" small-horizontal-align="end" small-width="10">
+                <box direction="row" horizontal-align="center" id="xaqe3" vertical-align="center">
+                  <button icon="carbon:edit" id="y48qm" on-click="gotoInspectDetailPage" on-click-arg="{{matrectransid:item.matrectransid, itemnum:item.itemnum, description:item.description, href:item.href, id:item._id}}"/>
+                </box>
+              </adaptive-column>
+            </adaptive-row>
+          </list-item>
+        </data-list>
+      </panel>
+    </page>
+    <page controller="InspectDetailPageController" id="inspectDetail" padding="false">
+      <states id="qp9_m">
+        <state id="q53ym" name="itemnum" type="string"/>
+        <state id="mjr_z" name="description" type="string"/>
+        <state id="vxnb2" name="_currentItem" type="object" url-enabled="true"/>
+        <state id="w3v3y" name="_orgcode" type="string"/>
+        <state id="z3wpz" name="_orgremark" type="string"/>
+        <state id="m8_m3" name="_orglocalref" type="string"/>
+      </states>
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="jqe9k" title="Edit">
+        <button icon="carbon:checkmark" id="a99gq" kind="primary" on-click="saveInspectDetail" slot="buttons"/>
+      </header-template>
+      <label id="wepr9" label="{page.state.itemnum} {page.state.description}" wrap="true"/>
+      <panel id="z5wxg">
+        <box background-color="field-01" direction="column" fill-parent="true" id="gvx9p" padding-top=".5">
+          <border-layout fill-parent="true" id="p2ew7">
+            <start id="yeyzb" width="20">
+              <box id="n2ywe" padding-top="1">
+                <label id="e9kqy" label="Rejection code"/>
+              </box>
+            </start>
+            <end id="ea49m" width="80">
+              <text-input hide-label="true" id="ddr5z" label="" max-length="6" placeholder="" value="{page.state._currentItem.rejectcode}"/>
+            </end>
+            <bottom id="ajqa4">
+              <box fill-parent="true" id="xjyrw">
+                <text-area hide-label="false" id="kxxp3" label="Comments" placeholder="" rows="5" theme="dark" value="{page.state._currentItem.remark}"/>
+              </box>
+            </bottom>
+          </border-layout>
+        </box>
+      </panel>
+      <!--box direction="column" fill-parent="true" background-color="ui-01" id="bqnap">
+        <border-layout fill-parent="true" id="g4pk_">
+          <top horizontal-align="start" vertical-align="center" id="aqw5n">
+            <box fill-parent="true" id="ekj28">
+              <label label="Photo" theme="16-bold" id="raar6"/>
+            </box>
+          </top>
+          <middle horizontal-align="center" vertical-align="start" id="q8w8g">
+            <image src="{itemMatrectrans.item._imagelibref}" readonly="false" title="Add photo" id="mx3ba"/>
+          </middle>
+        </border-layout>
+      </box-->
+    </page>
+    <page controller="ReturnPageController" id="returnpage" padding="false">
+      <states id="k52ep">
+        <state id="b88d2" name="containerTabSelected" type="number" url-enabled="true" value="0"/>
+      </states>
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="epx9w" title="Return">
+        <button icon="carbon:checkmark" id="x6kga" kind="primary" label="Save" on-click="saveReturn" slot="buttons"/>
+      </header-template>
+      <tabs id="v6wgm" on-selection-change="changeContainerTab" selected="{page.state.containerTabSelected}">
+        <tab datasource="returnrecjsonDs" id="q9_rm" label="Materials">
+          <tag-group align="start" id="akm8b" slot="badge-type" tags="{[{label:page.state.materialitemcount}]}" type="dark-gray"/>
+          <panel id="eyyyv">
+            <data-list datasource="returnrecjsonDs" empty-set-string="No material to return" id="zdarn" selected-icon="carbon:checkbox--checked" show-count="{true}" unselected-icon="carbon:checkbox">
+              <list-item id="bg87r">
+                <adaptive-row id="jwd49">
+                  <adaptive-column id="w7j2v" large-horizontal-align="start" large-width="45" medium-horizontal-align="start" medium-width="60" small-horizontal-align="start" small-width="100">
+                    <box direction="column" fill-parent="true" horizontal-align="start" id="mqyrq">
+                      <field field-class-name="16-bold" hide-label="true" id="a7z9z" padding="top" value="{item.itemnum}"/>
+                      <field field-class-name="16-regular" hide-label="true" id="jqwya" padding="bottom" value="{item.description}" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="x63mr" large-horizontal-align="end" large-width="25" medium-horizontal-align="end" medium-width="40" small-horizontal-align="start" small-width="100">
+                    <box direction="row" horizontal-align="end" id="ak_gb" vertical-align="center">
+                      <label id="xkyrr" label="Return" padding="none"/>
+                      <smart-input hide-label="true" id="bn6zj" input-kind="ALN" label="" placeholder="" size="small" value="{item.qtyrequested}"/>
+                    </box>
+                  </adaptive-column>
+                  <!-- Sedin Customization - Added lot number -->
+                  <adaptive-column id="Lotnumber" large-width="25" medium-width="40" small-width="100">
+                    <box direction="row" horizontal-align="start" id="Lotnumber1" vertical-align="center">
+                      <label id="kgdw61234" label="{item.tolot}" padding="none"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="ddyzk" large-horizontal-align="end" large-width="30" medium-horizontal-align="start" medium-width="100" small-horizontal-align="start" small-width="100">
+                    <box fill-parent="true" horizontal-align="end" id="jeepa" vertical-align="center">
+                      <label id="rvkpj" label="{item.actualdate}" padding="none"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </list-item>
+            </data-list>
+          </panel>
+        </tab>
+        <tab datasource="assetreturnDs" hidden="{app.device.isMaximoMobile}" id="dg7wd" label="Assets">
+          <tag-group align="start" id="rdqke" slot="badge-type" tags="{[{label:page.state.assetitemcount}]}" type="dark-gray"/>
+          <panel id="z53n3">
+            <search current-search="{page.state.currentSearch}" id="j8mdr" on-search="handleAssetSearch" place-holder-text="Search" searched="{page.state.searched}"/>
+            <data-list datasource="assetreturnDs" empty-set-string="No asset to return" id="jnbnb" selected-icon="carbon:checkbox--checked" show-count="{true}" show-search="false" unselected-icon="carbon:checkbox">
+              <list-item id="dx_kg">
+                <box direction="column" fill-parent="true" horizontal-align="start" id="y6dm2">
+                  <field field-class-name="16-bold" hide-label="true" id="bp75p" padding="top" value="{item.assetnum}"/>
+                  <field field-class-name="16-regular" hide-label="true" id="w3w_a" padding="bottom" value="{item.description}" wrap="true"/>
+                </box>
+              </list-item>
+              <list-details id="z9q76">
+                <adaptive-row id="nj_wr">
+                  <adaptive-column id="wm24y" large-horizontal-align="start" large-width="20" medium-horizontal-align="start" medium-width="20" small-horizontal-align="start" small-width="100">
+                    <box direction="column" fill-parent="true" horizontal-align="start" id="qnyry" vertical-align="center">
+                      <field field-class-name="16-bold" hide-label="true" id="me2br" padding="top" value="{item.itemnum}"/>
+                      <label color="gray60" id="nwde7" label="Item" padding="none" theme="14-regular"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="bvdv_" large-horizontal-align="center" large-width="20" medium-horizontal-align="center" medium-width="20" small-horizontal-align="start" small-width="100">
+                    <box direction="column" fill-parent="true" horizontal-align="start" id="r343r" vertical-align="center">
+                      <field hide-label="true" id="m3rvy" padding="top" value="{item.tostoreloc}"/>
+                      <label color="gray60" id="nq_ww" label="Storeroom" padding="none" theme="14-regular"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="vw2_v" large-horizontal-align="center" large-width="20" medium-horizontal-align="center" medium-width="20" small-horizontal-align="start" small-width="100">
+                    <box direction="column" fill-parent="true" horizontal-align="start" id="r7q8q" vertical-align="center">
+                      <field field-class-name="16-bold" hide-label="true" id="dxmx4" padding="top" value="{item.serialnum}"/>
+                      <label color="gray60" id="zym25" label="Serial number" padding="none" theme="14-regular"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="xjq7x" large-horizontal-align="center" large-width="30" medium-horizontal-align="center" medium-width="20" small-horizontal-align="start" small-width="100">
+                    <box direction="column" fill-parent="true" horizontal-align="start" id="xymqd" vertical-align="center">
+                      <field hide-label="true" id="npmw3" padding="top" value="{item.transdate}"/>
+                      <label color="gray60" id="a_2w6" label="Transaction date" padding="none" theme="14-regular"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </list-details>
+            </data-list>
+          </panel>
+        </tab>
+      </tabs>
+    </page>
+    <page controller="VoidPageController" id="voidpage" padding="false">
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="z22kw" title="Void">
+        <button icon="carbon:checkmark" id="e4xzp" kind="primary" label="Save" on-click="saveVoid" slot="buttons"/>
+      </header-template>
+      <panel id="mz48g">
+        <data-list datasource="voidrecjsonDs" empty-set-string="No void items" id="pgrjk" multi-action="false" selected-icon="carbon:checkbox--checked" show-count="true" unselected-icon="carbon:checkbox">
+          <list-item id="ezd8g">
+            <adaptive-row id="g3pnr">
+              <adaptive-column id="ewzby" large-horizontal-align="start" large-width="60" medium-horizontal-align="start" medium-width="70" small-horizontal-align="start" small-width="100">
+                <box direction="column" fill-parent="true" horizontal-align="start" id="y_69q">
+                  <field field-class-name="16-bold" hide-label="true" id="xe4jp" padding="top" value="{item.itemnum}"/>
+                  <field field-class-name="16-regular" hide-label="true" id="b5mn4" padding="bottom" value="{item.description}" wrap="true"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="md8k5" large-horizontal-align="end" large-width="10" medium-horizontal-align="end" medium-width="30" small-horizontal-align="start" small-width="100">
+                <box fill-parent="true" horizontal-align="start" id="knpkk" vertical-align="center">
+                  <label id="aqe7x" label="{item.qtyrequested}" padding="none"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="bv2zn" large-horizontal-align="end" large-width="30" medium-horizontal-align="start" medium-width="100" small-horizontal-align="start" small-width="100">
+                <box fill-parent="true" horizontal-align="start" id="ggm8y" vertical-align="center">
+                  <label id="a6xmk" label="{item.actualdate}" padding="none"/>
+                </box>
+              </adaptive-column>
+            </adaptive-row>
+          </list-item>
+        </data-list>
+      </panel>
+    </page>
+    <page controller="ReceiptPageController" id="receiptpage" padding="false">
+      <!-- Sedin Customization - Added the below State -->
+      <states id="r24fdsx5">
+        <state id="mfdsfv5je" name="countlabelscnt" type="number"/>
+      </states>
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="nab74" title="Receipts">
+        <!-- Sedin Customization - Added the button to navigato to Attchements page in Maximo on browser-->
+        <button on-click-arg="{{'item': receiptjsonDs.item, 'datasource': receiptjsonDs}}" kind="ghost" on-click="navigateToMaximo1" id="wg5mj" label="Attachments" slot="buttons"/>
+      </header-template>
+      <panel id="xbjeg">
+        <data-list datasource="receiptjsonDs" empty-set-string="No receipt items" id="na5rg" multi-action="false" selected-icon="carbon:checkbox--checked" show-count="true" unselected-icon="carbon:checkbox">
+          <list-item id="xwyak">
+            <adaptive-row id="em2py">
+              <adaptive-column id="prmgp" large-horizontal-align="start" large-width="33" medium-horizontal-align="start" medium-width="85" small-horizontal-align="start" small-width="100">
+                <box direction="column" fill-parent="true" horizontal-align="start" id="g5q44">
+                  <field field-class-name="16-bold" hide-label="true" id="wjw6n" padding="top" value="{item.itemnum}"/>
+                  <field field-class-name="16-regular" hide-label="true" id="vep7d" padding="bottom" value="{item.description}" wrap="true"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="z3bp5" large-horizontal-align="end" large-width="8" medium-horizontal-align="end" medium-width="15" small-horizontal-align="start" small-width="100">
+                <box fill-parent="true" horizontal-align="start" id="ar222" vertical-align="center">
+                  <label id="r6jm2" label="{item.receiptquantity}" padding="none"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="d7pk9" large-horizontal-align="end" large-width="15" medium-horizontal-align="start" medium-width="100" small-horizontal-align="start" small-width="100">
+                <box fill-parent="true" horizontal-align="start" id="a9wpk" vertical-align="center">
+                  <label id="j47dy" label="{item.status}" padding="none"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="v2d5n" large-horizontal-align="end" large-width="15" medium-horizontal-align="start" medium-width="100" small-horizontal-align="start" small-width="100">
+                <box fill-parent="true" horizontal-align="start" id="ne55w" vertical-align="center">
+                  <label id="kgdw6" label="{item.issuetype}" padding="none"/>
+                  <!-- sedin Customization- Added the Matrectransid field in receipts page -->
+                  <label label="{item.matrectransid}" padding="none" id="y45b5"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="Lotnum4" large-horizontal-align="end" large-width="15" medium-horizontal-align="start" medium-width="100" small-horizontal-align="start" small-width="100">
+                <box fill-parent="true" horizontal-align="start" id="lotnum5" vertical-align="center">
+                  <label id="kgdw6123" label="{item.tolot}" padding="none"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="abv3a" large-horizontal-align="end" large-width="29" medium-horizontal-align="start" medium-width="100" small-horizontal-align="start" small-width="100">
+                <box fill-parent="true" horizontal-align="start" id="negr9" vertical-align="center">
+                  <label id="j6qen" label="{item.actualdate}" padding="none"/>
+                </box>
+              </adaptive-column>
+            </adaptive-row>
+          </list-item>
+        </data-list>
+        <!-- sedin Customization - Added the button for Printer Requirement -->
+        <button on-click-arg="{{'item': receiptjsonDs.item, 'datasource': receiptjsonDs}}" kind="ghost" on-click="openlinkdialog" id="linkboxbutton" label="Print Labels"/>
+      </panel>
+      <!-- sedin Customization - Added the dialog for Printer Requirement -->
+      <dialogs id="customdialogs">
+        <sliding-drawer id="clicklinkboxcount" align="start" header-text="Print Label" content-padding="false">
+          <box direction="row" id="wn9mv">
+            <panel id="kgm2g">
+              <field label="Printer" value="{app.state.printertype}" id="jaqfdsf36"/>
+              <button on-click-arg="{{'datasource': alndomainData}}" id="printerselect" label="Select Printer" kind="ghost" on-click="openPrinter"/>
+              <field label="Label" value="{app.state.labeltype}" id="jaqfdsf3fdf6"/>
+              <button id="labelselectselect" label="Select Label" kind="ghost" on-click-arg="{{'datasource': alndomainData}}" on-click="openLabel"/>
+              <link theme="header-x-large" on-click-arg="{{'item': receiptjsonDs.item, 'datasource': receiptjsonDs}}" on-click="submitPrintRequest" label="Submit Print Request" id="a1_g2d5p"/>
+            </panel>
+          </box>
+        </sliding-drawer>
+      </dialogs>
+    </page>
+    <page controller="AssetPageController" id="assetpage" padding="false">
+      <states id="jq69r">
+        <state id="qrm9e" name="cansave" type="boolean" value="true"/>
+      </states>
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="dz2dd" title="Create assets">
+        <button disabled="{!page.state.cansave}" icon="carbon:checkmark" id="amvb_" kind="primary" label="Save" on-click="createAsset" slot="buttons"/>
+      </header-template>
+      <panel id="n72ra">
+        <data-list datasource="assetinputDs" empty-set-string="No asset to create" id="p3m52" multi-action="false" selected-icon="carbon:checkbox--checked" show-count="true" unselected-icon="carbon:checkbox">
+          <list-item id="xywm3">
+            <adaptive-row id="pmr5p">
+              <adaptive-column id="z_vw4" large-width="50" medium-width="50" small-width="100">
+                <box direction="column" id="ja3ye">
+                  <field field-class-name="16-bold" hide-label="true" id="mqwb2" padding="top" value="{item.itemnum}"/>
+                  <field field-class-name="16-regular" hide-label="true" id="n_knx" padding="bottom" value="{item.description}" wrap="true"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="qrxxy" large-horizontal-align="end" large-width="25" medium-horizontal-align="end" medium-width="25" small-horizontal-align="end" small-width="50">
+                <box direction="row" horizontal-align="center" id="zv_rj" vertical-align="center">
+                  <smart-input hide-label="true" hide-step-buttons="true" id="m8vr4" on-change="validateInput" on-change-arg="{item}" placeholder="Asset number" value="{item.assetnum}"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="pdey_" large-horizontal-align="end" large-width="25" medium-horizontal-align="end" medium-width="25" small-horizontal-align="end" small-width="50">
+                <box direction="row" horizontal-align="center" id="a5par" vertical-align="center">
+                  <smart-input hide-label="true" hide-step-buttons="true" id="yndb9" min="0" placeholder="Serial number" size="small" value="{item.serialnum}"/>
+                </box>
+              </adaptive-column>
+            </adaptive-row>
+          </list-item>
+        </data-list>
+      </panel>
+    </page>
+    <page controller="./shipment/ShipmentActionsPageController" id="shipmentactions">
+      <states id="shipa">
+        <state id="xa44r" name="shipmentnum" type="string"/>
+        <state id="qd_dj" name="href" type="string"/>
+        <state id="jyd8j" name="receivenum" type="string"/>
+        <state id="j8d3y" name="reccount" type="string"/>
+        <state id="w3449" name="matcount" type="string"/>
+        <state id="x99vb" name="assetcount" type="string"/>
+      </states>
+      <json-datasource id="shipmentactionListDS" id-attribute="_id" items="items" schema="schema" src="{[]}"/>
+      <json-datasource id="shipmentactionListDS2" id-attribute="_id" items="items" schema="schema" src="{[]}"/>
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="yp_m2" title="{page.state.shipmentnum}">
+        <!-- Sedin Customization - Added the Refresh button to force the transactions to sync into maximo -->
+        <button icon="carbon:renew" kind="primary" label="Refresh" on-click="syncTransactions" id="a1_vpeje" slot="buttons"/>
+      </header-template>
+      <box direction="column" id="y38kg">
+        <data-list datasource="shipmentactionListDS" id="eyzr9" no-select-behavior="true" on-item-click-arg="{event}" search-placeholder-text="Search submenu" show-search="false">
+          <list-item id="ez8pr">
+            <adaptive-row id="xqnk4">
+              <adaptive-column id="waa2r" large-width="10" medium-width="10" small-width="15">
+                <box direction="row" fill-parent="true" horizontal-align="center" id="gwawg" vertical-align="center">
+                  <icon icon="{item.icon}" id="yaqr6"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="ammbv" large-width="20" medium-width="20" small-width="55">
+                <box direction="row" fill-parent="true" horizontal-align="center" id="kw52z" vertical-align="center">
+                  <field field-class-name="16-bold" hide-label="true" id="kyd9z" value="{item.label}"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="a_673" large-width="55" medium-width="55" small-width="15">
+                <box direction="row" fill-parent="true" horizontal-align="end" id="vq2ag" vertical-align="center">
+                  <tag-group align="end" hidden="{!item.tagstring}" id="zm5m2" tags="{[{label: `${item.tagstring}`}]}" type="dark-gray"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="an48d" large-width="15" medium-width="15" small-width="15">
+                <box direction="row" fill-parent="true" horizontal-align="end" id="x73bk" vertical-align="center">
+                  <button disabled="{!item.count}" icon="carbon:chevron--right" id="dbxjd" on-click="gotoDetailActionPage" on-click-arg="{item}"/>
+                </box>
+              </adaptive-column>
+            </adaptive-row>
+          </list-item>
+        </data-list>
+        <data-list datasource="shipmentactionListDS2" id="bdqr4" margin="true" no-select-behavior="true" on-item-click-arg="{event}" show-search="false">
+          <list-item id="wkapz">
+            <adaptive-row id="br38w">
+              <adaptive-column id="zdyer" large-width="10" medium-width="10" small-width="15">
+                <box direction="row" fill-parent="true" horizontal-align="center" id="pa4y_" vertical-align="center">
+                  <icon icon="{item.icon}" id="zdkye"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="nw__v" large-width="75" medium-width="75" small-width="70">
+                <box direction="row" fill-parent="true" horizontal-align="center" id="ddm2z" vertical-align="center">
+                  <field field-class-name="16-bold" hide-label="true" id="qbwnj" value="{item.label}"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="b39zd" large-width="15" medium-width="15" small-width="15">
+                <box direction="row" fill-parent="true" horizontal-align="end" id="a7byd" vertical-align="end">
+                  <button disabled="{!item.count}" icon="carbon:chevron--right" id="epg9v" on-click="gotoDetailActionPage" on-click-arg="{item}"/>
+                </box>
+              </adaptive-column>
+            </adaptive-row>
+          </list-item>
+        </data-list>
+      </box>
+    </page>
+    <page controller="./shipment/ShipmentReceivePageController" id="shipmentreceivepage" padding="false">
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="gm8km" title="Receive">
+        <button icon="carbon:checkmark" id="r8_d_" kind="primary" label="Save" on-click="getSelectedItemsAndSaveShipmentReceive" slot="buttons"/>
+      </header-template>
+      <panel id="wk43n">
+        <data-list datasource="shipmentreceivejsonDS" empty-set-string="No material to receive" id="vyw3q" multi-action="false" selected-icon="carbon:checkbox--checked" show-count="{true}" unselected-icon="carbon:checkbox">
+          <list-item id="p9rae">
+            <box direction="column" horizontal-align="center" id="ny4rj" size="95" vertical-align="center">
+              <adaptive-row id="a7wx6">
+                <adaptive-column id="exkwa" large-width="55" medium-width="100" small-width="100">
+                  <box direction="column" id="w_qxz">
+                    <field field-class-name="16-bold" hide-label="true" id="weevz" padding="top" value="{item.itemnum}"/>
+                    <field field-class-name="16-regular" hide-label="true" id="qvk33" padding="bottom" value="{item.itemdescription}" wrap="true"/>
+                  </box>
+                </adaptive-column>
+                <adaptive-column id="vjdb7" large-horizontal-align="end" large-width="45" medium-horizontal-align="end" medium-width="100" small-horizontal-align="end" small-width="100">
+                  <box direction="row" hidden="{item.rotating}" horizontal-align="start" id="emmve" vertical-align="center">
+                    <smart-input hide-label="true" hide-step-buttons="false" id="pb8_3" input-kind="DECIMAL" size="small" value="{item.receiptquantity}"/>
+                  </box>
+                  <box direction="row" hidden="{!item.rotating}" horizontal-align="start" id="y2bad" vertical-align="center">
+                    <field hide-label="true" id="vrqgb" padding="top" value="{item.shippedqty}"/>
+                  </box>
+                </adaptive-column>
+              </adaptive-row>
+              <adaptive-row id="rrkrx">
+                <adaptive-column id="gqd6j" large-width="20" medium-width="100" small-width="100">
+                  <box direction="column" horizontal-align="start" id="p3wra" vertical-align="center">
+                    <field hide-label="true" id="ee8m4" padding="top" value="{item.shipmentlinenum}"/>
+                    <label color="gray60" id="yyy55" label="Shipment line" padding="none" theme="14-regular"/>
+                  </box>
+                </adaptive-column>
+                <adaptive-column id="zp4xw" large-width="30" medium-width="100" small-width="100">
+                  <box direction="column" horizontal-align="start" id="wm5jk" vertical-align="center">
+                    <field hide-label="true" id="w59_m" padding="top" value="{item.fromsiteid}"/>
+                    <label color="gray60" id="n39ky" label="From site" padding="none" theme="14-regular"/>
+                  </box>
+                </adaptive-column>
+                <adaptive-column id="ad42p" large-width="20" medium-width="100" small-width="100">
+                  <box direction="column" hidden="{item.tolot === undefined}" horizontal-align="start" id="bjn8a" vertical-align="center">
+                    <field hide-label="true" id="j7a5v" padding="top" value="{item.tolot}"/>
+                    <label color="gray60" id="bnwgj" label="Lot" padding="none" theme="14-regular"/>
+                  </box>
+                  <box direction="column" hidden="{item.fromconditioncode === undefined}" horizontal-align="start" id="k52mr" vertical-align="center">
+                    <field hide-label="true" id="qb5yk" padding="top" value="{item.fromconditioncode}"/>
+                    <label color="gray60" id="bvp75" label="Condition Code" padding="none" theme="14-regular"/>
+                  </box>
+                </adaptive-column>
+                <adaptive-column id="ba2p2" large-width="20" medium-width="100" small-width="100">
+                  <box direction="column" horizontal-align="start" id="a5nw4" vertical-align="center">
+                    <field hide-label="true" id="n4ppz" padding="top" value="{item.receiptquantity_old}"/>
+                    <label color="gray60" id="j9xr2" label="Quantity shipped" padding="none" theme="14-regular"/>
+                  </box>
+                </adaptive-column>
+                <adaptive-column id="gjwa8" large-horizontal-align="end" large-width="10" medium-horizontal-align="start" medium-width="100" small-horizontal-align="start" small-width="100">
+                  <box direction="column" horizontal-align="start" id="jwvrr" vertical-align="center">
+                    <button icon="carbon:chevron--right" id="v9666" on-click="openShipReceiveItemDetails" on-click-arg="{item}"/>
+                  </box>
+                </adaptive-column>
+              </adaptive-row>
+            </box>
+          </list-item>
+        </data-list>
+      </panel>
+      <dialogs id="qxwz4">
+        <sliding-drawer align="start" header-text="Item details" id="shiprecitemdetail" on-close-action="onDrawerClose" on-close-action-arg="{[page.state.detailsargs]}">
+          <button icon="carbon:checkmark" id="vew6e" kind="primary" on-click="saveInputValue" on-click-arg="{[page.state.detailsargs]}" slot="header-button"/>
+          <box direction="column" id="kzd2r">
+            <box background-color="ui-01" direction="column" id="m2_da" padding-bottom=".5">
+              <label id="bz_y5" label="Item" theme="16-bold"/>
+              <field id="m3pqy" padding="none" value="{page.state.detailsargs.itemnum}"/>
+              <field id="yk483" padding="bottom" value="{page.state.detailsargs.itemdescription}" wrap="true"/>
+            </box>
+            <box background-color="ui-01" id="bwdyx" padding-bottom=".5" vertical-align="center">
+              <label id="kqj33" label="Received" required="true"/>
+              <number-input hidden="{page.state.detailsargs.rotating}" hide-step-buttons="true" id="z6x36" value="{page.state.detailsargs.receiptquantity}"/>
+              <field hidden="{!page.state.detailsargs.rotating}" id="k5v74" value="{page.state.detailsargs.receiptquantity}"/>
+            </box>
+            <box background-color="ui-01" direction="column" id="kev6j" padding-bottom=".5">
+              <label id="wvwmq" label="Quantity shipped" theme="16-bold"/>
+              <field id="vjxpk" padding="bottom" value="{page.state.detailsargs.receiptquantity_old}"/>
+            </box>
+            <box background-color="ui-01" direction="column" hidden="{page.state.detailsargs.fromconditioncode === undefined}" id="xw8rv" padding-bottom=".5">
+              <label id="z_wnm" label="Condition" theme="16-bold"/>
+              <field empty-field-placeholder="-" id="ywpx8" padding="bottom" value="{page.state.detailsargs.fromconditioncode}"/>
+            </box>
+            <label id="z4g8v" label="Transfer details" theme="large"/>
+            <box background-color="ui-01" direction="column" hidden="{page.state.detailsargs.fromlot === undefined}" id="maj7n" padding-bottom=".5">
+              <label id="ym7jj" label="From lot" theme="16-bold"/>
+              <field empty-field-placeholder="-" id="j4y2x" padding="bottom" value="{page.state.detailsargs.fromlot}"/>
+            </box>
+            <box background-color="ui-01" direction="column" hidden="{page.state.detailsargs.tolot === undefined}" id="v3dn7" padding-bottom=".5">
+              <label id="kme5x" label="To lot" theme="16-bold"/>
+              <field empty-field-placeholder="-" id="jyb7v" padding="bottom" value="{page.state.detailsargs.tolot}"/>
+            </box>
+            <box background-color="ui-01" direction="column" id="mr2zx" padding-bottom=".5">
+              <label id="mm4rj" label="From site" theme="16-bold"/>
+              <field empty-field-placeholder="-" id="m_wr9" padding="bottom" value="{page.state.detailsargs.fromsiteid}"/>
+            </box>
+            <box background-color="ui-01" direction="column" id="y9vq8" padding-bottom=".5">
+              <label id="j8968" label="From storeroom" theme="16-bold"/>
+              <field empty-field-placeholder="-" id="bk2mk" padding="bottom" value="{page.state.detailsargs.fromstoreloc}"/>
+            </box>
+            <box background-color="ui-01" direction="column" id="ajxbx" padding-bottom=".5">
+              <label id="vpz_r" label="To bin" theme="16-bold"/>
+              <field empty-field-placeholder="-" id="wzmkq" padding="bottom" value="{page.state.detailsargs.tobin}"/>
+            </box>
+            <box background-color="ui-01" direction="column" hidden="{page.state.detailsargs.rotassetnum === undefined}" id="xvk4_" padding-bottom=".5">
+              <label id="aqp3y" label="Asset number" theme="16-bold"/>
+              <field empty-field-placeholder="-" id="y5e5p" padding="bottom" value="{page.state.detailsargs.rotassetnum}"/>
+            </box>
+            <box background-color="ui-01" direction="column" hidden="{page.state.detailsargs.serialnum === undefined}" id="wpm7n" padding-bottom=".5">
+              <label id="abggq" label="Serial number" theme="16-bold"/>
+              <field empty-field-placeholder="-" id="rw74n" padding="bottom" value="{page.state.detailsargs.serialnum}"/>
+            </box>
+          </box>
+        </sliding-drawer>
+      </dialogs>
+    </page>
+    <page controller="./shipment/ShipmentAssetPageController" id="shipmentassetpage" padding="false">
+      <states id="zngbk">
+        <state id="y8p5x" name="enablesave" type="boolean" value="false"/>
+      </states>
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="y9np2" title="Create assets">
+        <button icon="carbon:checkmark" id="napv2" kind="primary" label="Save" on-click="createAsset" slot="buttons"/>
+      </header-template>
+      <panel id="y5bze">
+        <border-layout fill-parent="true" id="dz5n8" padding="true">
+          <start horizontal-align="end" horizontal-overflow="hidden" id="xy29_" vertical-align="center" width="2">
+            <icon icon="carbon:warning" id="mpjvv" size="16"/>
+          </start>
+          <middle horizontal-align="start" horizontal-overflow="hidden" id="xykja" vertical-align="center" width="98">
+            <label id="y7262_" label="Enter an asset number or an asset number is automatically generated." theme="14-regular" wrap="true"/>
+          </middle>
+        </border-layout>
+        <data-list datasource="shipmentassetinputDS" empty-set-string="No asset to create" id="yem2d" multi-action="false" show-count="true" show-search="false">
+          <list-item id="vkyqe">
+            <adaptive-row id="xydrz">
+              <adaptive-column id="xgpa8" large-width="100" medium-width="100" small-width="100">
+                <box direction="column" id="bqrxa">
+                  <field field-class-name="16-bold" hide-label="true" id="vq7dk" padding="top" value="{item.itemnum}"/>
+                  <field field-class-name="16-regular" hide-label="true" id="ga4xp" padding="bottom" value="{item.description}" wrap="true"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="kx879" large-horizontal-align="start" large-width="50" medium-horizontal-align="start" medium-width="50" small-horizontal-align="start" small-width="50">
+                <box direction="row" horizontal-align="center" id="bz4mj" vertical-align="center">
+                  <smart-input hide-label="false" hide-step-buttons="true" id="e_rba" on-change="validateInput" on-change-arg="{item}" placeholder="Could be automatically generated" value="{item.assetnum}"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="v2256" large-horizontal-align="start" large-width="50" medium-horizontal-align="start" medium-width="50" small-horizontal-align="start" small-width="50">
+                <box direction="row" horizontal-align="center" id="qgayy" vertical-align="center">
+                  <smart-input hide-label="false" hide-step-buttons="true" id="xmrna" min="0" placeholder="Serial number" readonly="true" size="small" value="{item.serialnum}"/>
+                </box>
+              </adaptive-column>
+            </adaptive-row>
+          </list-item>
+        </data-list>
+      </panel>
+    </page>
+    <page controller="./shipment/ShipmentReturnPageController" id="shipmentreturnpage" padding="false">
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="k9_dx" title="Return">
+        <button icon="carbon:checkmark" id="e926m" kind="primary" label="Save" on-click="saveShipmentReturn" slot="buttons"/>
+      </header-template>
+      <panel id="db8r5">
+        <data-list datasource="shipmentreturnrecjsonDS" empty-set-string="No material to return" id="x7_y7" selected-icon="carbon:checkbox--checked" show-count="{true}" unselected-icon="carbon:checkbox">
+          <list-item id="ymp9v">
+            <adaptive-row id="j82rw">
+              <adaptive-column id="m6y9b" large-horizontal-align="start" large-width="45" medium-horizontal-align="start" medium-width="60" small-horizontal-align="start" small-width="100">
+                <box direction="column" fill-parent="true" horizontal-align="start" id="vqa8m">
+                  <field field-class-name="16-bold" hide-label="true" id="mz96v" padding="top" value="{item.itemnum}"/>
+                  <field field-class-name="16-regular" hide-label="true" id="r67xd" padding="bottom" value="{item.itemdescription}" wrap="true"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="jmwny" large-horizontal-align="start" large-width="55" medium-horizontal-align="end" medium-width="40" small-horizontal-align="start" small-width="100">
+                <box direction="row" horizontal-align="end" id="jnve_" vertical-align="center">
+                  <label id="qvzxv" label="Return" padding="none"/>
+                  <smart-input hide-label="true" id="pvqnj" input-kind="ALN" label="" placeholder="" size="small" value="{item.qtyrequested}"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="dbxrv" large-horizontal-align="start" large-width="45" medium-horizontal-align="start" medium-width="100" small-horizontal-align="start" small-width="100">
+                <box fill-parent="true" horizontal-align="end" id="bzw6z" vertical-align="center">
+                  <label id="z78pw" label="{item.actualdate}" padding="none"/>
+                </box>
+              </adaptive-column>
+              <adaptive-column id="g7kze" large-horizontal-align="start" large-width="55" medium-horizontal-align="start" medium-width="100" small-horizontal-align="start" small-width="100">
+                <box fill-parent="true" hidden="{item.fromconditioncode === undefined}" horizontal-align="end" id="y4xe5" vertical-align="center">
+                  <label id="pdb76" label="Condition code" padding="none"/>
+                  <label id="yzx69" label="{item.fromconditioncode}" padding="none"/>
+                </box>
+              </adaptive-column>
+            </adaptive-row>
+          </list-item>
+        </data-list>
+      </panel>
+    </page>
+    <page controller="./shipment/ShipmentVoidPageController" id="shipmentvoidpage" padding="false">
+      <states id="xqz5q">
+        <state id="ykvq3" name="originalremark" type="string"/>
+      </states>
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="q9krv" title="Void">
+        <button icon="carbon:checkmark" id="n3zy2" kind="primary" label="Save" on-click="getSelectedItemsAndSaveShipmentVoid" slot="buttons"/>
+      </header-template>
+      <panel id="eexkg">
+        <data-list datasource="shipmentvoidrecjsonDS" empty-set-string="No material to receive" id="q4mx5" multi-action="false" selected-icon="carbon:checkbox--checked" show-count="{true}" unselected-icon="carbon:checkbox">
+          <list-item id="wenrn">
+            <box direction="column" horizontal-align="center" id="n5xqd" size="95" vertical-align="center">
+              <box direction="column" id="j5834">
+                <field field-class-name="16-bold" hide-label="true" id="apb5x" padding="top" value="{item.itemnum}"/>
+                <field field-class-name="16-regular" hide-label="true" id="az6ba" padding="bottom" value="{item.itemdescription}" wrap="true"/>
+              </box>
+              <adaptive-row id="pvzqv">
+                <adaptive-column id="m6d4v" large-width="18" medium-width="100" small-width="100">
+                  <box direction="column" horizontal-align="start" id="ax376" vertical-align="center">
+                    <field hide-label="true" id="zzgz_" padding="top" value="{item.shipmentlinenum}"/>
+                    <label color="ui-04" id="nx533" label="Shipment line" padding="none" theme="14-regular"/>
+                  </box>
+                </adaptive-column>
+                <adaptive-column id="g86dp" large-width="18" medium-width="100" small-width="100">
+                  <box direction="column" horizontal-align="start" id="zk5ng" vertical-align="center">
+                    <field hide-label="true" id="v3ddw" padding="top" value="{item.fromstoreloc}"/>
+                    <label color="ui-04" id="vwmag" label="From storeroom" padding="none" theme="14-regular"/>
+                  </box>
+                </adaptive-column>
+                <adaptive-column id="wry77" large-width="18" medium-width="100" small-width="100">
+                  <box direction="column" horizontal-align="start" id="wwywv" vertical-align="center">
+                    <field hide-label="true" id="jgb38" padding="top" value="{item.qtyrequested}"/>
+                    <label color="ui-04" id="y3jv2" label="Quantity received" padding="none" theme="14-regular"/>
+                  </box>
+                </adaptive-column>
+                <adaptive-column id="njz8q" large-width="18" medium-width="100" small-width="100">
+                  <box direction="column" hidden="{item.tolot === undefined}" horizontal-align="start" id="xdqrj" vertical-align="center">
+                    <field hide-label="true" id="gqzjd" padding="top" value="{item.tolot}"/>
+                    <label color="ui-04" id="bg7g2" label="Lot" padding="none" theme="14-regular"/>
+                  </box>
+                </adaptive-column>
+                <adaptive-column id="yazg5" large-width="18" medium-width="100" small-width="100">
+                  <box direction="column" hidden="{item.fromconditioncode === undefined}" horizontal-align="start" id="j77nd" vertical-align="center">
+                    <field hide-label="true" id="mz3pj" padding="top" value="{item.fromconditioncode}"/>
+                    <label color="ui-04" id="n39yx" label="Condition code" padding="none" theme="14-regular"/>
+                  </box>
+                </adaptive-column>
+                <adaptive-column id="dxmm7" large-horizontal-align="end" large-width="10" medium-horizontal-align="start" medium-width="100" small-horizontal-align="start" small-width="100">
+                  <box direction="column" horizontal-align="start" id="kqwzz" vertical-align="center">
+                    <button icon="carbon:chevron--right" id="mj98_" on-click="openShipVoidReceiveItemDetails" on-click-arg="{item}"/>
+                  </box>
+                </adaptive-column>
+              </adaptive-row>
+            </box>
+          </list-item>
+        </data-list>
+      </panel>
+      <dialogs id="rvr6d">
+        <sliding-drawer align="start" header-text="Item details" id="shipvoidrecitemdetail" on-close-action="closeItemDetail" on-close-action-arg="{[page.state.detailsargs]}">
+          <button icon="carbon:checkmark" id="ymnp8" kind="primary" on-click="saveItemDetail" on-click-arg="{[page.state.detailsargs]}" slot="header-button"/>
+          <box direction="column" id="y8xxn">
+            <box background-color="ui-01" direction="column" id="k7684" padding-bottom=".5">
+              <label id="rq7za" label="Item" theme="16-bold"/>
+              <field id="m74eg" padding="none" value="{page.state.detailsargs.itemnum}"/>
+              <field id="gd6r4" padding="bottom" value="{page.state.detailsargs.itemdescription}" wrap="true"/>
+            </box>
+            <label id="knkyp" label="Remarks" theme="large"/>
+            <box background-color="ui-01" direction="column" id="qg7pq" padding-bottom=".5">
+              <text-area id="rm7jr" label="Remarks" theme="light" value="{page.state.detailsargs.remark}"/>
+            </box>
+          </box>
+        </sliding-drawer>
+      </dialogs>
+    </page>
+    <page controller="./shipment/ShipmentInspectPageController" id="shipmentinspectpage" padding="false">
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="wpeak" title="Inspect">
+        <button icon="carbon:checkmark" id="g926w" kind="primary" label="{'Save'}" on-click="saveInspect" slot="buttons"/>
+      </header-template>
+      <tabs id="kg5pw" on-selection-change="changeContainerTab" selected="{page.state.containerTabSelected}">
+        <tab datasource="shipmentinspectjsonDS" id="x3ram" label="Material list">
+          <tag-group align="start" id="db7vp" slot="badge-type" tags="{[{label:page.state.materialitemcount}]}" type="dark-gray"/>
+          <panel id="jbq35">
+            <data-list datasource="shipmentinspectjsonDS" empty-set-string="No material to inspect" expand-all="{true}" id="aea7v" selected-icon="carbon:checkbox--checked" show-count="{true}" unselected-icon="carbon:checkbox">
+              <list-item id="vyn68">
+                <box direction="column" fill-parent="true" id="z_63x">
+                  <box direction="column" id="k4bzp">
+                    <field field-class-name="16-bold" hide-label="true" id="mkbz3" padding="top" value="{item.itemnum}"/>
+                    <field field-class-name="16-regular" hide-label="true" id="qn8ex" padding="bottom" value="{item.itemdescription}" wrap="true"/>
+                  </box>
+                  <box direction="column" hidden="{item.tolot === undefined}" horizontal-align="start" id="be4gy" vertical-align="center">
+                    <field hide-label="true" id="z6ar6" padding="top" value="{item.tolot}"/>
+                    <label color="gray60" id="x64mb" label="Lot" padding="none" theme="14-regular"/>
+                  </box>
+                </box>
+              </list-item>
+              <list-details id="zkew6">
+                <border-layout fill-parent="{true}" id="r4dgn">
+                  <middle id="aqbz2">
+                    <box fill-parent="{true}" id="yg23z">
+                      <smart-input id="d3brp" input-kind="ALN" label="Accept" placeholder="" size="small" value="{item.acceptedqty}"/>
+                      <smart-input id="a89bw" input-kind="ALN" label="Reject" placeholder="" size="small" value="{item.rejectqty}"/>
+                    </box>
+                  </middle>
+                  <end id="x36rq" vertical-align="end">
+                    <button hidden="{!Number(item.rejectqty) || item.invalid}" icon="carbon:edit" id="eevb_" kind="{item.rejectcode ? 'ghost' : 'danger'}" on-click="showDetails" on-click-arg="{{type:'materials',item:item}}"/>
+                  </end>
+                </border-layout>
+              </list-details>
+            </data-list>
+          </panel>
+        </tab>
+        <tab datasource="shipmentinspectassetjsonDS" id="va4bq" label="Asset list">
+          <tag-group align="start" id="yqjga" slot="badge-type" tags="{[{label:page.state.assetitemcount}]}" type="dark-gray"/>
+          <panel id="p5rn2">
+            <data-list datasource="shipmentinspectassetjsonDS" empty-set-string="No asset to inspect" expand-all="{true}" id="qbzk3" selected-icon="carbon:checkbox--checked" show-count="{true}" unselected-icon="carbon:checkbox">
+              <list-item id="njpak">
+                <box direction="column" id="myndd">
+                  <field field-class-name="16-bold" hide-label="true" id="xkz_k" padding="top" value="{item.computedRotItemDisplay}"/>
+                  <field field-class-name="16-regular" hide-label="true" id="zperd" padding="bottom" value="{item.itemdescription}" wrap="true"/>
+                </box>
+              </list-item>
+              <list-details id="ydxwz">
+                <border-layout fill-parent="{true}" id="a58ng">
+                  <middle id="aq6vw">
+                    <box fill-parent="{true}" id="g_q8_">
+                      <checkbox-group id="xjj8m" label="" large="{true}" on-change="setAccept" on-change-arg="{item}" options="{[{id: `${item._id}-accept`, checked: item.acceptedqty, label: 'Accept', selectedIcon: 'carbon:radio-button--checked', unselectedIcon:'carbon:radio-button'}, {id: `${item._id}-reject`, label: 'Reject', checked: item.rejectqty, selectedIcon: 'carbon:radio-button--checked', unselectedIcon:'carbon:radio-button'}]}" single-select="true"/>
+                    </box>
+                  </middle>
+                  <end id="q8769" vertical-align="end">
+                    <button hidden="{!Number(item.rejectqty) || item.invalid}" icon="carbon:edit" id="jzwzn" kind="{item.rejectcode ? 'ghost' : 'danger'}" on-click="showDetails" on-click-arg="{{type:'assets',item:item}}"/>
+                  </end>
+                </border-layout>
+              </list-details>
+            </data-list>
+          </panel>
+        </tab>
+      </tabs>
+      <dialogs id="e3qmq">
+        <sliding-drawer align="start" content-padding="false" header-text="Reject item" id="shipmentinspectDetails">
+          <button icon="carbon:checkmark" id="dr646" kind="primary" on-click="onDetailDone" slot="header-button"/>
+          <box direction="column" fill-parent="true" id="arxj_">
+            <box fill-parent="true" id="dppjm" padding-bottom="0.25">
+              <box background-color="ui-01" direction="column" fill-parent="true" id="p45_7">
+                <field field-class-name="16-bold" hide-label="true" id="nd4kj" padding="top" value="{page.state.itemnum}"/>
+                <field field-class-name="16-regular" hide-label="true" id="ew8py" padding="bottom" value="{page.state.itemdescription}" wrap="true"/>
+              </box>
+            </box>
+            <box fill-parent="true" hidden="{page.state.type === 'assets'}" id="v5ej9" padding-bottom="0.25">
+              <box background-color="ui-01" fill-parent="true" id="dn58x" vertical-align="center">
+                <label id="x46qd" label="Reject quantity" required="true"/>
+                <number-input hide-step-buttons="true" id="ya_q6" placeholder="" value="{page.state.rejectQty}"/>
+              </box>
+            </box>
+            <box fill-parent="true" id="qjkw9" padding-bottom="0.25">
+              <box background-color="ui-01" fill-parent="true" id="xabym" vertical-align="center">
+                <label id="bx6zk" label="Reject code" required="true"/>
+                <text-input id="awqd2" max-length="6" placeholder="" type="text" value="{page.state.rejectCode}"/>
+              </box>
+            </box>
+          </box>
+        </sliding-drawer>
+      </dialogs>
+    </page>
+    <page controller="./shipment/ShipmentReceiptPageController" id="shipmentreceiptpage" padding="false">
+      <header-template hide-breadcrumb="true" icon-action="goBack" icon-name="carbon:close" id="z_mmn" title="Receipts"/>
+      <panel id="n3ggm">
+        <data-list datasource="shipmentreceiptjsonDs" empty-set-string="No receipt items" id="zr_dy" multi-action="false" recordtype-attr="computedStyle" selected-icon="carbon:checkbox--checked" show-count="true" unselected-icon="carbon:checkbox">
+          <list-item id="rp89b" renderer-type="comp">
+            <border-layout fill-parent="true" id="wdk3d" padding="true" top-border="true">
+              <top direction="column" horizontal-align="start" horizontal-overflow="hidden" id="v_w8m" vertical-align="center">
+                <adaptive-row id="qxrgw">
+                  <adaptive-column id="jx774" large-width="70" medium-width="70" small-width="100">
+                    <box children-hide-overflow="true" direction="column" fill-parent-horizontal="true" horizontal-align="start" id="x9a7e" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <label id="wy32d" label="{item.itemnum}" padding="none" theme="16-bold"/>
+                      <label id="mrg5n" label="{item.itemdesc}" padding="none" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="k_vqk" large-width="30" medium-width="30" small-width="100">
+                    <box children-hide-overflow="true" direction="column" fill-parent-horizontal="true" horizontal-align="end" id="ye_ad" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <tag-group align="start" id="xvpya" tags="{item.statusJSON4Badge}" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </top>
+              <middle horizontal-align="start" horizontal-overflow="hidden" id="z_42_" vertical-align="center">
+                <adaptive-row id="avq7d">
+                  <adaptive-column id="pn937" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="k854_" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.5'}" vertical-align="center">
+                      <field id="v7vng" label="Issue type" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'top' : 'default'}" value="{item.issuetype}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="ar67q" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="man83" padding="0.25" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <field id="pd6mm" label="Quantity received" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.receiptquantity}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="xpprb" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="kdare" padding="0.25" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <field id="n6bv5" label="Quantity accepted" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.acceptedqty}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="x4ebm" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" horizontal-align="end" id="a_qvr" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" padding-top="0.25" vertical-align="center">
+                      <field id="agnyg" label="Date" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.computedActualDate}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="ymerg" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" hidden="{item.rotassetnum === undefined}" horizontal-align="end" id="yxnj5" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" padding-top="0.25" vertical-align="center">
+                      <field id="pjjw2" label="Asset number" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.rotassetnum}"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </middle>
+            </border-layout>
+          </list-item>
+          <list-item id="g_q3v" renderer-type="transfer">
+            <border-layout fill-parent="true" id="n4k6m" padding="true" top-border="true">
+              <top direction="column" horizontal-align="start" horizontal-overflow="hidden" id="e5m8w" vertical-align="center">
+                <adaptive-row id="wz32v">
+                  <adaptive-column id="ke5ew" large-width="70" medium-width="70" small-width="100">
+                    <box children-hide-overflow="true" direction="column" fill-parent-horizontal="true" horizontal-align="start" id="b6ade" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <label id="y3__d" label="{item.itemnum}" padding="none" theme="16-bold"/>
+                      <label id="k_6d3" label="{item.itemdesc}" padding="none" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="yanbg" large-width="30" medium-width="30" small-width="100">
+                    <box children-hide-overflow="true" direction="column" fill-parent-horizontal="true" horizontal-align="end" id="y7xxr" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <tag-group align="start" id="gvx3w" tags="{item.statusJSON4Badge}" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </top>
+              <middle horizontal-align="start" horizontal-overflow="hidden" id="g67b2" vertical-align="center">
+                <adaptive-row id="g7_2d">
+                  <adaptive-column id="bag6g" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="wqk5b" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.5'}" vertical-align="center">
+                      <field id="md_5e" label="Issue type" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'top' : 'default'}" value="{item.issuetype}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="ezj7_" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="wp4jr" padding="0.25" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <field id="gey2p" label="Quantity ordered" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.orderqty}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="mn55r" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="p8mkb" padding="0.25" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <field id="exwp_" label="Quantity accepted" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.receiptquantity}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="dyzky" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" horizontal-align="end" id="gv73j" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" padding-top="0.25" vertical-align="center">
+                      <field id="qazdv" label="Date" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.computedActualDate}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="kzggk" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" hidden="{item.rotassetnum === undefined}" horizontal-align="end" id="rxv9a" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" padding-top="0.25" vertical-align="center">
+                      <field id="anzrp" label="Asset number" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.rotassetnum}"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </middle>
+            </border-layout>
+          </list-item>
+          <list-item id="qd3wb" renderer-type="voidshipreceipt">
+            <border-layout fill-parent="true" id="p9ezp" padding="true" top-border="true">
+              <top direction="column" horizontal-align="start" horizontal-overflow="hidden" id="xyda6" vertical-align="center">
+                <adaptive-row id="v6npv">
+                  <adaptive-column id="n2ykm" large-width="70" medium-width="70" small-width="100">
+                    <box children-hide-overflow="true" direction="column" fill-parent-horizontal="true" horizontal-align="start" id="r3mv8" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <label id="a3y36" label="{item.itemnum}" padding="none" theme="16-bold"/>
+                      <label id="yg9dy" label="{item.itemdesc}" padding="none" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="zy3_y" large-width="30" medium-width="30" small-width="100">
+                    <box children-hide-overflow="true" direction="column" fill-parent-horizontal="true" horizontal-align="end" id="yzdav" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <tag-group align="start" id="zwrbx" tags="{item.statusJSON4Badge}" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </top>
+              <middle horizontal-align="start" horizontal-overflow="hidden" id="q3pdg" vertical-align="center">
+                <adaptive-row id="r6v76">
+                  <adaptive-column id="xqxyb" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="kqp3y" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.5'}" vertical-align="center">
+                      <field id="yp_y5" label="Issue type" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'top' : 'default'}" value="{item.issuetype}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="r_ekw" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="rvveb" padding="0.25" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <field id="d64r2" label="Quantity ordered" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.orderqty}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="d8n8g" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="g_qb8" padding="0.25" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <field id="qy8x_" label="Quantity void" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.receiptquantity}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="qrg5q" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" horizontal-align="end" id="agz75" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" padding-top="0.25" vertical-align="center">
+                      <field id="nx537" label="Date" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.computedActualDate}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="v6g_w" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" hidden="{item.rotassetnum === undefined}" horizontal-align="end" id="nn_jj" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" padding-top="0.25" vertical-align="center">
+                      <field id="n8nr_" label="Asset number" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.rotassetnum}"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </middle>
+            </border-layout>
+          </list-item>
+          <list-item id="x6p_7" renderer-type="shipreturn">
+            <border-layout fill-parent="true" id="wkmek" padding="true" top-border="true">
+              <top direction="column" horizontal-align="start" horizontal-overflow="hidden" id="p4_k_" vertical-align="center">
+                <adaptive-row id="b7rm5">
+                  <adaptive-column id="p4dn5" large-width="70" medium-width="70" small-width="100">
+                    <box children-hide-overflow="true" direction="column" fill-parent-horizontal="true" horizontal-align="start" id="ee8w9" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <label id="xdmk5" label="{item.itemnum}" padding="none" theme="16-bold"/>
+                      <label id="zvryb" label="{item.itemdesc}" padding="none" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="np46_" large-width="30" medium-width="30" small-width="100">
+                    <box children-hide-overflow="true" direction="column" fill-parent-horizontal="true" horizontal-align="end" id="aab9m" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <tag-group align="start" id="ewjdn" tags="{item.statusJSON4Badge}" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </top>
+              <middle horizontal-align="start" horizontal-overflow="hidden" id="z36v9" vertical-align="center">
+                <adaptive-row id="q868b">
+                  <adaptive-column id="e3xd7" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="qgpwk" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.5'}" vertical-align="center">
+                      <field id="m3b2z" label="Issue type" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'top' : 'default'}" value="{item.issuetype}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="j8yp2" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="rr7p4" padding="0.25" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <field id="p4jxr" label="Quantity rejected" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.receiptquantity}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="ywv6d" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="e2ga8" padding="0.25" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <field id="qg9np" label="Reject code" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.rejectcode}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="nj6yd" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" horizontal-align="end" id="m2qen" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" padding-top="0.25" vertical-align="center">
+                      <field id="nm8zj" label="Date" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.computedActualDate}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="e674j" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" hidden="{item.rotassetnum === undefined}" horizontal-align="end" id="nm_3d" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" padding-top="0.25" vertical-align="center">
+                      <field id="w_7ek" label="Asset number" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.rotassetnum}"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </middle>
+            </border-layout>
+          </list-item>
+          <list-item id="n_3qb" renderer-type="winsp">
+            <border-layout fill-parent="true" id="avxyn" padding="true" top-border="true">
+              <top direction="column" horizontal-align="start" horizontal-overflow="hidden" id="pqqd9" vertical-align="center">
+                <adaptive-row id="ene2e">
+                  <adaptive-column id="pzkny" large-width="70" medium-width="70" small-width="100">
+                    <box children-hide-overflow="true" direction="column" fill-parent-horizontal="true" horizontal-align="start" id="mg68x" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <label id="ge_8w" label="{item.itemnum}" padding="none" theme="16-bold"/>
+                      <label id="ddza7" label="{item.itemdesc}" padding="none" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="yar79" large-width="30" medium-width="30" small-width="100">
+                    <box children-hide-overflow="true" direction="column" fill-parent-horizontal="true" horizontal-align="end" id="nv33n" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <tag-group align="start" id="babj3" tags="{item.statusJSON4Badge}" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </top>
+              <middle horizontal-align="start" horizontal-overflow="hidden" id="p27wk" vertical-align="center">
+                <adaptive-row id="x4y58">
+                  <adaptive-column id="exr5n" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="qjydj" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.5'}" vertical-align="center">
+                      <field id="wxkpk" label="Issue type" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'top' : 'default'}" value="{item.issuetype}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="w4vnb" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="d_q45" padding="0.25" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <field id="kd67v" label="Quantity ordered" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.orderqty}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="xzr_5" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="ykawp" padding="0.25" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <field id="xreqk" label="Quantity received" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.receiptquantity}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="gpz39" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" horizontal-align="end" id="j2zmx" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" padding-top="0.25" vertical-align="start">
+                      <field id="rv4e6" label="Date" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.computedActualDate}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="qk47e" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" hidden="{item.rotassetnum === undefined}" horizontal-align="end" id="z7e8_" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" padding-top="0.25" vertical-align="center">
+                      <field id="nx9ev" label="Asset number" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.rotassetnum}"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </middle>
+            </border-layout>
+          </list-item>
+          <list-item id="zqvx7" renderer-type="wasset">
+            <border-layout fill-parent="true" id="am8ab" padding="true" top-border="true">
+              <top direction="column" horizontal-align="start" horizontal-overflow="hidden" id="ndq36" vertical-align="center">
+                <adaptive-row id="w8_dn">
+                  <adaptive-column id="ggpn_" large-width="70" medium-width="70" small-width="100">
+                    <box children-hide-overflow="true" direction="column" fill-parent-horizontal="true" horizontal-align="start" id="gw_4q" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <label id="pr88r" label="{item.itemnum}" padding="none" theme="16-bold"/>
+                      <label id="y99qm" label="{item.itemdesc}" padding="none" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="yb9ry" large-width="30" medium-width="30" small-width="100">
+                    <box children-hide-overflow="true" direction="column" fill-parent-horizontal="true" horizontal-align="end" id="e8yrk" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <tag-group align="start" id="wy_qp" tags="{item.statusJSON4Badge}" wrap="true"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </top>
+              <middle horizontal-align="start" horizontal-overflow="hidden" id="rn4x5" vertical-align="center">
+                <adaptive-row id="e2k92">
+                  <adaptive-column id="q249g" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="ewena" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.5'}" vertical-align="center">
+                      <field id="g8nr2" label="Issue type" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'top' : 'default'}" value="{item.issuetype}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="vd555" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="z3ep8" padding="0.25" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <field id="rw5_d" label="Quantity ordered" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.orderqty}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="wbn8p" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" id="yreej" padding="0.25" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" vertical-align="center">
+                      <field id="r6de6" label="Quantity received" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.receiptquantity}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="w9rxe" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" horizontal-align="end" id="wgyd7" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" padding-top="0.25" vertical-align="center">
+                      <field id="bgm65" label="Date" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.computedActualDate}"/>
+                    </box>
+                  </adaptive-column>
+                  <adaptive-column id="bdpg4" large-width="20" medium-width="20" small-width="100">
+                    <box children-hide-overflow="true" fill-parent-horizontal="true" hidden="{item.rotassetnum === undefined}" horizontal-align="end" id="rmb6d" padding-start="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? '1' : '.2'}" padding-top="0.25" vertical-align="center">
+                      <field id="zgzx4" label="Asset number" label-placement="top" padding="{app.state.screen.size === 'sm' || app.state.screen.size === 'md' ? 'none' : 'default'}" value="{item.rotassetnum}"/>
+                    </box>
+                  </adaptive-column>
+                </adaptive-row>
+              </middle>
+            </border-layout>
+          </list-item>
+        </data-list>
+      </panel>
+    </page>
+  </pages>
+  <messages id="prydr">
+    <message id="POLines" text="{0} PO Lines"/>
+    <message id="POLine" text="{0} PO Line"/>
+    <message id="Receive" text="Receive"/>
+    <message id="Inspect" text="Inspect"/>
+    <message id="CreateAssets" text="Create assets"/>
+    <message id="Return" text="Return"/>
+    <message id="Receipts" text="Receipts"/>
+    <message id="Void" text="Void"/>
+    <message id="receive_done_msg" text="{0} material(s) received"/>
+    <message id="return_materials_done_msg" text="{0} material(s) returned"/>
+    <message id="return_assets_done_msg" text="{0} asset(s) returned"/>
+    <message id="void_done_msg" text="{0} receipt(s) voided"/>
+    <message id="to_inspect_msg" text="{0} material(s) are required to inspect"/>
+    <message id="inspect_done_msg" text="{0} item(s) inspected"/>
+    <message id="asset_done_msg" text="{0} asset(s) created"/>
+    <message id="invalidinput" text="The sum of the accepted quantity and the rejected quantity is greater than the quantity to be inspected."/>
+    <message id="invalidinput2" text="The accepted quantity and the rejected quantity cannot be zero at the same time."/>
+    <message id="exceedlimit" text="Exceed the quantity ordered."/>
+    <message id="expectnumber" text="A number great than 0 is expected."/>
+    <message id="allowednumber" text="A number great or equal than 0 is allowed."/>
+    <message id="contain_invalid" text="The items with warnings would not be saved."/>
+    <message id="empty_selection" text="Please select valid items to save."/>
+    <message id="nodata" text="No data remains in this page, go back to previous page."/>
+    <message id="invalidconcode" text="Invalid condition code."/>
+    <message id="lot" text="Lot"/>
+    <message id="shelf_life" text="Shelf life(days)"/>
+    <message id="expiration_date" text="Expiration Date"/>
+    <message id="condition_code" text="Condition Code"/>
+    <message id="packing_slip" text="Packing slip #"/>
+    <message id="comment" text="Comment"/>
+    <message id="warning" text="Warning"/>
+    <message id="close" text="Close"/>
+    <message id="emptyqty_msg" text="Quantity Due can not be empty."/>
+    <message id="default_storeroom_not_defined_msg" text="Please set default storeroom for the login user in Maximo."/>
+    <message id="computed_rotating_item_display" text="{0} / ({1})"/>
+    <message id="no_shipment_found" text="No shipment found"/>
+    <message id="no_po_found" text="No purchase order found"/>
+    <message id="no_storeroom_configured" text="No storeroom configured for this user"/>
+    <message id="inventory_receiving" text="Inventory receiving"/>
+    <message id="shipment_receiving" text="Shipment receiving"/>
+  </messages>
+</maximo-application>
