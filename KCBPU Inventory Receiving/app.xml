@@ -48,7 +48,7 @@
       <attribute id="nq276" name="storeloc" searchable="true"/>
       <attribute id="y5db9" name="receipts" searchable="true">
         <!--Sedin customization: Added lookup-map to receipts attribute-->
-        <lookup-map datasource="receiptsDS" name="value" id="b2_vnnvr">
+        <lookup-map datasource="receiptsFilterDS" name="value" id="b2_vnnvr">
           <lookup-return datasource-field="description" lookup-field="displayValue" id="b2_y2va4"/>
           <lookup-return datasource-field="value" lookup-field="value" id="b2_wdyy6"/>
         </lookup-map>
@@ -552,7 +552,7 @@
       </schema>
     </maximo-datasource>
   </maximo-datasource>
-  <maximo-datasource id="synonymdomainDS" id-attribute="domainid" lookup-data="true" object-structure="mxapisynonymdomain" saved-query="MOBILEDOMAIN">
+  <maximo-datasource id="synonymdomainDS" id-attribute="valueid" lookup-data="true" object-structure="mxapisynonymdomain" saved-query="MOBILEDOMAIN">
     <schema id="wgwqq">
       <attribute id="p9bv9" name="value" searchable="true"/>
       <attribute id="bgye2" name="maxvalue" searchable="true"/>
@@ -563,16 +563,19 @@
       <attribute id="arvym" name="orgid" searchable="true"/>
       <attribute id="n4bqk" name="defaults"/>
     </schema>
+	<!-- Sedin Customization - Added override for receipts status filter -->
+    <maximo-datasource-override id="receiptsFilterDS" mobile-qbe-filter="{{'domainid':'=RECEIPTS'}}" where="domainid=&quot;RECEIPTS&quot;"  selection-mode="multiple"/>
   </maximo-datasource>
-  <!-- Sedin Customization - Added new maximo datasource for receipts status -->
-  <maximo-datasource id="receiptsDS" object-structure="MXAPISYNONYMDOMAIN" lookup-data="true" saved-query="RECEIPTS" offline-immediate-download="true" page-size="100" pre-load="true" selection-mode="single">
+  <!-- Sedin Customization - Added new maximo datasource for receipts status
+  <maximo-datasource id="receiptsDS" object-structure="MXAPISYNONYMDOMAIN" lookup-data="true" pre-load="true"
+  offline-immediate-download="true" saved-query="RECEIPTS" selection-mode="multiple">
     <schema id="b2_pmk_4">
       <attribute name="domainid" id="b2_ndaev"/>
       <attribute name="value" searchable="true" unique-id="true" id="b2_ap8_4"/>
       <attribute name="description" searchable="true" id="b2_ewg3g"/>
     </schema>
-    <maximo-datasource-override id="receiptsFilterDS" selection-mode="single"/>
-  </maximo-datasource>
+    <maximo-datasource-override id="receiptsFilterDS" selection-mode="multiple"/>
+  </maximo-datasource> -->
   <!-- Sedin Customization - Added new maximo datasource alndomainData -->
   <maximo-datasource id="alndomainData" id-attribute="domainid" offline-immediate-download="true" object-structure="MXAPIALNDOMAIN" page-size="10" lookup-data="true" selection-mode="single">
     <schema id="zxb7q">
