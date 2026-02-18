@@ -42,6 +42,7 @@
       <attribute id="wbbqd" name="invuseline._dbcount--invuselinecount"/>
       <attribute id="ab5ssv4" name="carrier"/>
       <attribute id="ab5ssssv4" name="shipto"/>
+      <attribute name="bpuissueto" id="a1_jgp6j"/>
       <attribute id="ab5vds4" name="shipmentdate"/>
       <attribute id="ab5sva4" name="shiptoattn"/>
       <attribute id="adb5v4" name="expreceiptdate"/>
@@ -494,6 +495,7 @@
           <attribute id="evv_5" name="kc_umsperson" searchable="true"/>
         </schema>
       </maximo-datasource>
+	  <!-- Commented out wonum lookup datasource - no longer needed (sedin change)
 	  <maximo-datasource id="wonumLookupDS" lookup-data="true" object-structure="MXAPIWO" offline-immediate-download="true" pre-load="false" saved-query="BPUMOBILEWOLOOKUP" selection-mode="single">
 		<schema id="wonum_lookup_schema">
 		  <attribute id="wonum_id" name="wonum" searchable="true" unique-id="true"/>
@@ -501,7 +503,7 @@
 		  <attribute id="wostatus_id" name="status" searchable="true"/>
 		  <attribute id="wositeid_id" name="siteid" searchable="true"/>
 		</schema>
-       </maximo-datasource>
+       </maximo-datasource>-->
       <maximo-datasource id="locationDS" lookup-data="true" object-structure="MXAPIOPERLOC" pre-load="true" saved-query="MOBILELOCATION" selection-mode="single">
         <schema id="a5q95">
           <attribute id="vm5rp" name="description" searchable="true"/>
@@ -546,11 +548,11 @@
           </box> -->
 		  <!--customization to add Wonum Field for Invusage creation  (sedin change)-->
 		  <box background-color="field-01" direction="row" fill-parent="true" horizontal-align="start" id="w_rab" padding-bottom="0.5" padding-top="0.5" vertical-align="center">
-			<input-lookup-template id="bpuwonumfield" label="Work Order" lookup="invUseBpuWonum" placeholder="Enter Work Order Number" select-lookup-attribute="wonum" value="{page.state.bpuwonum}" readonly="{page.state.readonlyState}" on-change="computeEnableSave" />
-		  </box>
+		  <text-input id="jxnzr" label="Work Order" on-change="computeEnableSave" readonly="{page.state.readonlyState}"  value="{page.state.bpuwonum}"/>
+          </box>
           <!--customization to add Issue To Field for Invusage creation  (sedin change)-->
-          <box background-color="field-01" direction="row" fill-parent="true" horizontal-align="start" id="a1_rmkam" padding-bottom="0.5" padding-top="0.5" vertical-align="center">
-			<input-lookup-template id="invuseissetofield" label="Issue To" lookup="invUseIssueTo" placeholder="Enter 'Issue To'" select-lookup-attribute="displayname" value="{page.state.bpuissueto}" readonly="{page.state.readonlyState}" on-change="computeEnableSave" />
+          <box direction="row" vertical-align="center" horizontal-align="start" padding-top="0.5" padding-bottom="0.5" background-color="field-01" fill-parent="true" id="a1_rmkam">
+            <input-lookup-template id="invuseissetofield" value="{page.state.bpuissueto}" label="Issue To" placeholder="Enter 'Issue To'" select-lookup-attribute="displayname" lookup="invUseIssueTo"/>
             <!--
             <smart-input id="invuseissetofield" enable-lookup-buttongroup="true" on-change="computeEnableSave" value="" placeholder="Enter 'Issue To'" label="Issue To" on-blur="validateIssueTo" invalid-text="Enter a valid 'Issue to'">
               <button slot="button-group" kind="secondary" icon="carbon:search" on-click="openLocalLookup" on-click-arg="{{name:'invUseIssueTo', ds:'issuetoLookupDS'}}" id="a1_nkeb2"/>
@@ -1351,7 +1353,8 @@
         <lookup datasource="issuetoLookupDS" enable-barcode-scanner="false" id="issuetoLookup" lookup-attributes="{['displayname']}" lookup-heading="Issue To" on-item-click="chooseIssueto" show-count="true" show-search="true" width="99"/>
         <!-- customzation to add issue to  and work order lookup (sedin change)-->
         <lookup datasource="issuetoLookupDS" enable-barcode-scanner="false" id="invUseIssueTo" lookup-attributes="{['personid','displayname','kc_umsperson']}" lookup-heading="Issue To" on-item-click="chooseInvUseIssueto" show-count="true" show-search="true" width="99"/>
-		<lookup datasource="wonumLookupDS" enable-barcode-scanner="true" id="invUseBpuWonum" lookup-attributes="{['wonum','description','status']}" lookup-heading="Select Work Order" on-item-click="chooseInvUseBpuWonum" readers="{[`ean_reader`,`code_128_reader`,`code_39_reader`]}" show-count="true" show-search="true" width="99"/>
+		<!-- Commented out wonum lookup - no longer needed (sedin change)
+		<lookup datasource="wonumLookupDS" enable-barcode-scanner="true" id="invUseBpuWonum" lookup-attributes="{['wonum','description','status']}" lookup-heading="Select Work Order" on-item-click="chooseInvUseBpuWonum" readers="{[`ean_reader`,`code_128_reader`,`code_39_reader`]}" show-count="true" show-search="true" width="99"/>-->
         <lookup datasource="billtoshiptoDS" enable-barcode-scanner="false" id="billtoshiptoLookup" lookup-attributes="{['addresscode', 'description']}" lookup-heading="Adress" on-item-click="chooseOptionLookupToShipment" on-item-click-arg="{{target:'shipto', source:'addresscode' }}" show-count="true" show-search="true" width="99"/>
         <lookup datasource="locationDS" enable-barcode-scanner="false" id="locationLookup" lookup-attributes="{['location', 'description']}" lookup-heading="Location" on-item-click="chooseLocationLookup" show-search="true" width="99"/>
         <lookup datasource="locationDS" enable-barcode-scanner="false" id="storeRoomLookup" lookup-attributes="{['location', 'description']}" lookup-heading="Storeroom" on-item-click="chooseStoreRoomLookup" show-search="true" width="99"/>
